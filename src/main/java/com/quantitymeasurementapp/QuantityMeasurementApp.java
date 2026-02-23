@@ -1,7 +1,5 @@
 package com.quantitymeasurementapp;
 
-import com.quantitymeasurementapp.Length.LengthUnit;
-
 public class QuantityMeasurementApp {
 	public static Length demonstrateLengthAddition(Length length1,Length length2,LengthUnit targetUnit) {
 		if(length1 == null || length2 == null) throw new IllegalArgumentException("Length should not be null");
@@ -25,8 +23,8 @@ public class QuantityMeasurementApp {
 	}
 
 public static void main(String[] args) {
-Length length1 = new Length(2.0, Length.LengthUnit.FEET);
-Length length2 = new Length(12.0, Length.LengthUnit.INCHES);
+Length length1 = new Length(2.0,LengthUnit.FEET);
+Length length2 = new Length(12.0,LengthUnit.INCHES);
 System.out.println("Are lengths equal ? " +  length1.equals(length2));
 System.out.println(demonstrateLengthAddition(12.0, 13.0,LengthUnit.FEET));
 System.out.println(demonstrateLengthAddition(length1, length2,LengthUnit.YARDS));

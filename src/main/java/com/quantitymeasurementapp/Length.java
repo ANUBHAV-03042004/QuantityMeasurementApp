@@ -4,32 +4,15 @@ public class Length{
 private double value;
 private LengthUnit unit;
 private static final double epsilon = 1e-4;
-// used enum
-public enum LengthUnit{
-	FEET(12.0),
-	INCHES(1.0),
-	YARDS(36.0),
-	CENTIMETERS(0.393701);
-	private final double conversionFactor;
-	LengthUnit(double conversionFactor){
-		this.conversionFactor = conversionFactor;
-	}
-	public double getConversionFactor() {
-		return conversionFactor;
-	}
-}
-
 public Length(double value,LengthUnit unit) {
 	if(value<0) throw new IllegalArgumentException("value cannot be less than zero");
 	if(unit == null)  throw new IllegalArgumentException("unit cannot be null");
 	this.setValue(value);
 	this.unit=unit;
 }
-public double convertToBaseUnit() {
-	return this.getValue() * this.unit.conversionFactor;
-}
+
 public boolean compare(Length thatLength) {
-	return Math.abs(this.convertToBaseUnit()-thatLength.convertToBaseUnit())<epsilon;
+	return Math.abs(this.unit.convertToBaseUnit(this.value)-thatLength.unit.convertToBaseUnit(thatLength.value))<epsilon;
 //return Double.compare(this.convertToBaseUnit() ,thatLength.convertToBaseUnit()) == 0;
 }
 @Override
@@ -63,7 +46,7 @@ public static Length demonstrateLengthConversion(Length length, LengthUnit toUni
 public Length convertTo(LengthUnit targetUnit) {
     if (targetUnit == null)
         throw new IllegalArgumentException("Target unit cannot be null");
-    double baseValue = this.convertToBaseUnit();           
+    double baseValue = this.unit.convertToBaseUnit(this.getValue());           
     double convertedValue = baseValue / targetUnit.getConversionFactor(); 
     return new Length(convertedValue, targetUnit);
 }
@@ -79,7 +62,9 @@ public static double convert(double value, LengthUnit sourceUnit, LengthUnit tar
 @Override
 public String toString() {
     return String.format("Length{value=%.4f, unit=%s, inInches=%.4f}",
-            getValue(), unit.name(), convertToBaseUnit());
+            value,
+            unit,
+            unit.convertToBaseUnit(value));
 }
 double getValue() {
 	return value;

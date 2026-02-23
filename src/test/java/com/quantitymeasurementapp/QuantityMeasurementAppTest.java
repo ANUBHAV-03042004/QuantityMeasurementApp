@@ -1,6 +1,5 @@
 package com.quantitymeasurementapp;
 import com.quantitymeasurementapp.Length;
-import com.quantitymeasurementapp.Length.LengthUnit;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -10,10 +9,10 @@ class QuantityMeasurementAppTest {
 	public static final double EPSILON = 1e-4;
 	@Test
 	public void addFeetandInches() {
-		Length length1 = new Length(2.0,Length.LengthUnit.FEET);
-		Length length2 = new Length(12.0,Length.LengthUnit.INCHES);
+		Length length1 = new Length(2.0,LengthUnit.FEET);
+		Length length2 = new Length(12.0,LengthUnit.INCHES);
 		Length sumLength = QuantityMeasurementApp.demonstrateLengthAddition(length1, length2, LengthUnit.YARDS);
-		Length checkLength = new Length(1.0,Length.LengthUnit.YARDS);
+		Length checkLength = new Length(1.0,LengthUnit.YARDS);
 		assertTrue(Length.demonstrateLengthEquality(sumLength, checkLength));
 	}
 	@Test
@@ -25,11 +24,11 @@ class QuantityMeasurementAppTest {
 	}
 	@Test
 	public void checkInstanceAdddLength() {
-		Length length1 = new Length(2.0,Length.LengthUnit.FEET);
-		Length length2 = new Length(12.0,Length.LengthUnit.INCHES);
+		Length length1 = new Length(2.0,LengthUnit.FEET);
+		Length length2 = new Length(12.0,LengthUnit.INCHES);
 		Length sumLength=length1.addLength(length2, LengthUnit.INCHES);
 		assertEquals(36.0,sumLength.getValue(),EPSILON);
-	    assertEquals(Length.LengthUnit.INCHES, sumLength.getUnit());
+	    assertEquals(LengthUnit.INCHES, sumLength.getUnit());
 
 	}
 }
