@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class QuantityMeasurementAppTest {
-
+// used epsilon to accept values falling under the range
     private static final double EPSILON = 1e-4;
 
     @Test
