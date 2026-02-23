@@ -4,7 +4,7 @@ public class Length{
 	private double value;
 	private LengthUnit unit;
 	
-	
+// used	enum for Feet and inches
 	public enum LengthUnit{
 		FEET(12.0),
 		INCHES(1.0);

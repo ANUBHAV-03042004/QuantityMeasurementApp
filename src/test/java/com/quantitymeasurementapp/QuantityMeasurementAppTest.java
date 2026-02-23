@@ -5,12 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
-
+// test cases
 class QuantityMeasurementAppTest{
 
 	@Test
 	void testEquality_FeetToFeet_SameValue() {
-		
+
 		assertEquals(true, new Length(1.0, Length.LengthUnit.FEET).equals(new Length(1.0, Length.LengthUnit.FEET)));
 		
 	}
@@ -52,7 +52,7 @@ class QuantityMeasurementAppTest{
 	
 	@Test
 	void testEquality_InvalidUnit() {
-		
+
 		assertThrows(IllegalArgumentException.class, ()->new Length(1.0, null));
 		
 	}
