@@ -11,7 +11,7 @@ class QuantityMeasurementAppTest {
 		Length length1 = new Length(2.0,Length.LengthUnit.FEET);
 		Length length2 = new Length(12.0,Length.LengthUnit.INCHES);
 		Length sumLength = QuantityMeasurementApp.demonstrateLengthAddition(length1, length2);
-		Length checkLength = new Length(1.0,Length.LengthUnit.YARDS);
+		Length checkLength = new Length(3.0,Length.LengthUnit.FEET);
 		assertTrue(Length.demonstrateLengthEquality(sumLength, checkLength));
 	}
 	@Test
