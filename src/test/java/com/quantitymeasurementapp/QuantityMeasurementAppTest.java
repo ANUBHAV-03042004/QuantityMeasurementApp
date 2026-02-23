@@ -10,7 +10,7 @@ class QuantityMeasurementAppTest {
 	public void addFeetandInches() {
 		Length length1 = new Length(2.0,Length.LengthUnit.FEET);
 		Length length2 = new Length(12.0,Length.LengthUnit.INCHES);
-		Length sumLength = QuantityMeasurementApp.demonstrateLengthAddition(length1, length2, LengthUnit.YARDS);
+		Length sumLength = QuantityMeasurementApp.demonstrateLengthAddition(length1, length2);
 		Length checkLength = new Length(1.0,Length.LengthUnit.YARDS);
 		assertTrue(Length.demonstrateLengthEquality(sumLength, checkLength));
 	}
@@ -18,7 +18,6 @@ class QuantityMeasurementAppTest {
 	public void checkLengthValue() {
 		Length length1 = null;
 		Length length2 = null;
-		LengthUnit unit=null;
-		assertThrows(IllegalArgumentException.class,()->QuantityMeasurementApp.demonstrateLengthAddition(length1,length2,unit));
+		assertThrows(IllegalArgumentException.class,()->QuantityMeasurementApp.demonstrateLengthAddition(length1,length2));
 	}
 }

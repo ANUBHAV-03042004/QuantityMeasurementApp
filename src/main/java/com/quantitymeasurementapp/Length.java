@@ -91,9 +91,6 @@ LengthUnit getUnit() {
 	return unit;
 }
 public Length addLength(Length thatLength) {
-    return QuantityMeasurementApp.demonstrateLengthAddition(this, thatLength, this.getUnit());
-}
-public Length addLength(double value) {
-    return QuantityMeasurementApp.demonstrateLengthAddition(this.value, value, this.getUnit());
+    return QuantityMeasurementApp.demonstrateLengthAddition(this, thatLength);
 }
 }
