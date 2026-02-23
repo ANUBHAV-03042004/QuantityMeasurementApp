@@ -3,7 +3,7 @@ package com.quantitymeasurementapp;
 public class Length{
 private double value;
 private LengthUnit unit;
-
+private static final double epsilon = 1e-4;
 // used enum
 public enum LengthUnit{
 	FEET(12.0),
@@ -29,7 +29,8 @@ public double convertToBaseUnit() {
 	return this.value * this.unit.conversionFactor;
 }
 public boolean compare(Length thatLength) {
-return Double.compare(this.convertToBaseUnit() ,thatLength.convertToBaseUnit()) == 0;
+	return Math.abs(this.convertToBaseUnit()-thatLength.convertToBaseUnit())<epsilon;
+//return Double.compare(this.convertToBaseUnit() ,thatLength.convertToBaseUnit()) == 0;
 }
 @Override
 public boolean equals(Object o) {
@@ -50,5 +51,34 @@ public static boolean demonstrateLengthComparison(double value1, LengthUnit unit
 	Length l2 = new Length(value2,unit2);
 	
 	return l1.equals(l2);
+}
+public static Length demonstrateLengthConversion(double value,LengthUnit fromUnit,LengthUnit toUnit) {
+Length source = new Length(value, fromUnit);
+return source.convertTo(toUnit);
+}
+
+public static Length demonstrateLengthConversion(Length length, LengthUnit toUnit) {
+    return length.convertTo(toUnit);
+}
+public Length convertTo(LengthUnit targetUnit) {
+    if (targetUnit == null)
+        throw new IllegalArgumentException("Target unit cannot be null");
+    double baseValue = this.convertToBaseUnit();           
+    double convertedValue = baseValue / targetUnit.getConversionFactor(); 
+    return new Length(convertedValue, targetUnit);
+}
+public static double convert(double value, LengthUnit sourceUnit, LengthUnit targetUnit) {
+    if (!Double.isFinite(value))
+        throw new IllegalArgumentException("Value must be finite, got: " + value);
+    if (sourceUnit == null || targetUnit == null)
+        throw new IllegalArgumentException("Source and target units must not be null");
+    Length temp = new Length(value, sourceUnit);
+    return temp.convertTo(targetUnit).value;
+}
+
+@Override
+public String toString() {
+    return String.format("Length{value=%.4f, unit=%s, inInches=%.4f}",
+            value, unit.name(), convertToBaseUnit());
 }
 }
