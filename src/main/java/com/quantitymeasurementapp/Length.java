@@ -4,7 +4,7 @@ public class Length{
 private double value;
 private LengthUnit unit;
 private static final double epsilon = 1e-4;
-// used enum for unit
+// used enum
 public enum LengthUnit{
 	FEET(12.0),
 	INCHES(1.0),
@@ -22,11 +22,11 @@ public enum LengthUnit{
 public Length(double value,LengthUnit unit) {
 	if(value<0) throw new IllegalArgumentException("value cannot be less than zero");
 	if(unit == null)  throw new IllegalArgumentException("unit cannot be null");
-	this.value = value;
+	this.setValue(value);
 	this.unit=unit;
 }
 public double convertToBaseUnit() {
-	return this.value * this.unit.conversionFactor;
+	return this.getValue() * this.unit.conversionFactor;
 }
 public boolean compare(Length thatLength) {
 	return Math.abs(this.convertToBaseUnit()-thatLength.convertToBaseUnit())<epsilon;
@@ -73,12 +73,27 @@ public static double convert(double value, LengthUnit sourceUnit, LengthUnit tar
     if (sourceUnit == null || targetUnit == null)
         throw new IllegalArgumentException("Source and target units must not be null");
     Length temp = new Length(value, sourceUnit);
-    return temp.convertTo(targetUnit).value;
+    return temp.convertTo(targetUnit).getValue();
 }
 
 @Override
 public String toString() {
     return String.format("Length{value=%.4f, unit=%s, inInches=%.4f}",
-            value, unit.name(), convertToBaseUnit());
+            getValue(), unit.name(), convertToBaseUnit());
+}
+double getValue() {
+	return value;
+}
+void setValue(double value) {
+	this.value = value;
+}
+LengthUnit getUnit() {
+	return unit;
+}
+public Length addLength(Length thatLength) {
+    return QuantityMeasurementApp.demonstrateLengthAddition(this, thatLength, this.getUnit());
+}
+public Length addLength(double value) {
+    return QuantityMeasurementApp.demonstrateLengthAddition(this.value, value, this.getUnit());
 }
 }
