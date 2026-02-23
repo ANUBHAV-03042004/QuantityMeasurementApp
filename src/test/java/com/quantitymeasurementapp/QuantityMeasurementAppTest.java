@@ -25,7 +25,7 @@ public void testInchesEquality() {
 }
 @Test
 public void testFeetInchesComparison() {
-
+//check feet and  inches equality
 	assertTrue(Length.demonstrateLengthComparison(1.0,LengthUnit.FEET,12.0,LengthUnit.INCHES));	
 }
 @Test
