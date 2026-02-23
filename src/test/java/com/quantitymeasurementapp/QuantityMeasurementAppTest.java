@@ -196,6 +196,7 @@ class QuantityMeasurementAppTest {
 
     @Test
     public void testConstructor_NullUnit_Throws() {
+//    to check null
         assertThrows(IllegalArgumentException.class,
                 () -> new Length(1.0, null));
     }

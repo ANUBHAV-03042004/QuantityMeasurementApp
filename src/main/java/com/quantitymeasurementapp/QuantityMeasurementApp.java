@@ -20,7 +20,7 @@ System.out.printf("3 yd  → ft  : %.4f%n", Length.convert(3.0,  Length.LengthUn
 System.out.printf("36 in → yd  : %.4f%n", Length.convert(36.0, Length.LengthUnit.INCHES,      Length.LengthUnit.YARDS));       // 1.0
 System.out.printf("1 cm  → in  : %.6f%n", Length.convert(1.0,  Length.LengthUnit.CENTIMETERS, Length.LengthUnit.INCHES));      // ~0.393701
 System.out.printf("0 ft  → in  : %.4f%n", Length.convert(0.0,  Length.LengthUnit.FEET,        Length.LengthUnit.INCHES));      // 0.0
-// convert length into another unit
+// convert length into another unit length
 
 System.out.println(new Length(3.0, Length.LengthUnit.FEET));
 }

@@ -4,7 +4,7 @@ public class Length{
 private double value;
 private LengthUnit unit;
 private static final double epsilon = 1e-4;
-// used enum for units
+// used enum for unit
 public enum LengthUnit{
 	FEET(12.0),
 	INCHES(1.0),
