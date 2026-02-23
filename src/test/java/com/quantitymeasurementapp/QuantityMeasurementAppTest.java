@@ -3,9 +3,11 @@ import com.quantitymeasurementapp.Length;
 import com.quantitymeasurementapp.Length.LengthUnit;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
 class QuantityMeasurementAppTest {
+	public static final double EPSILON = 1e-4;
 	@Test
 	public void addFeetandInches() {
 		Length length1 = new Length(2.0,Length.LengthUnit.FEET);
@@ -20,5 +22,14 @@ class QuantityMeasurementAppTest {
 		Length length2 = null;
 		LengthUnit unit=null;
 		assertThrows(IllegalArgumentException.class,()->QuantityMeasurementApp.demonstrateLengthAddition(length1,length2,unit));
+	}
+	@Test
+	public void checkInstanceAdddLength() {
+		Length length1 = new Length(2.0,Length.LengthUnit.FEET);
+		Length length2 = new Length(12.0,Length.LengthUnit.INCHES);
+		Length sumLength=length1.addLength(length2, LengthUnit.INCHES);
+		assertEquals(36.0,sumLength.getValue(),EPSILON);
+	    assertEquals(Length.LengthUnit.INCHES, sumLength.getUnit());
+
 	}
 }

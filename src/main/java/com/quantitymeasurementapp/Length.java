@@ -90,10 +90,10 @@ void setValue(double value) {
 LengthUnit getUnit() {
 	return unit;
 }
-public Length addLength(Length thatLength) {
-    return QuantityMeasurementApp.demonstrateLengthAddition(this, thatLength, this.getUnit());
+public Length addLength(Length thatLength,LengthUnit targetUnit) {
+    return QuantityMeasurementApp.demonstrateLengthAddition(this, thatLength,targetUnit);
 }
-public Length addLength(double value) {
-    return QuantityMeasurementApp.demonstrateLengthAddition(this.value, value, this.getUnit());
+public Length addLength(double value ,LengthUnit targetUnit) {
+    return QuantityMeasurementApp.demonstrateLengthAddition(this.value, value,targetUnit);
 }
 }
