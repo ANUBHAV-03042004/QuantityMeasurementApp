@@ -21,13 +21,28 @@ public class QuantityMeasurementApp {
 	Length sum = new Length(length1 + length2,targetUnit);
 	return sum;
 	}
+	
+	public static Weight demonstrateWeightAddition(Weight weight1,Weight weight2,WeightUnit targetUnit) {
+		if(weight1 == null || weight2 == null) throw new IllegalArgumentException("Weight should not be null");
+		if(targetUnit == null ) throw new IllegalArgumentException("Target Unit Should not be null");
+		if(!Double.isFinite(weight1.getValue()) || !Double.isFinite(weight2.getValue())) throw new IllegalArgumentException("Weights should be in finite range");
+		
+		Weight convertedWeight1 = weight1.convertTo(targetUnit);
+		Weight convertedWeight2 = weight2.convertTo(targetUnit);
+		
+		 double sumValue = convertedWeight1.getValue() + convertedWeight2.getValue();
+		    return new Weight(sumValue, targetUnit);
+	}
+
 
 public static void main(String[] args) {
-double kilograms = 10.0;
-double gram = WeightUnit.KILOGRAM.convertToBaseUnit(kilograms);
-System.out.println(kilograms+" Kilograms in gram "+gram);
+	double kilograms = 10.0;
+	double grams = WeightUnit.GRAM.convertFromBaseUnit(
+	                    WeightUnit.KILOGRAM.convertToBaseUnit(kilograms));
 
-double milligrams=WeightUnit.MILLIGRAM.convertFromBaseUnit(gram);
-System.out.println(gram+" grams in milligram "+ milligrams);
+	System.out.println(kilograms + " kilograms in grams = " + grams);
+
+double milligrams=WeightUnit.MILLIGRAM.convertFromBaseUnit(grams);
+System.out.println(grams+" grams in milligram "+ milligrams);
 }
 }

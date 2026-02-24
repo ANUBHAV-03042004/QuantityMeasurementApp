@@ -7,7 +7,7 @@ private static final double epsilon = 1e-4;
 private double value;
 private WeightUnit unit;
 
-public Weight(double value,WeightUnit weight) {
+public Weight(double value,WeightUnit unit) {
 	this.value=value;
 	this.unit=unit;
 }
@@ -33,5 +33,30 @@ public boolean equals(Object o) {
 public int hashCode() {
 	return Objects.hash(this.unit.convertToBaseUnit(value));
 }
-
+public Weight convertTo(WeightUnit targetUnit) {
+	 if (targetUnit == null)
+	        throw new IllegalArgumentException("Target unit cannot be null");
+	    double baseValue = this.unit.convertToBaseUnit(this.getValue());           
+	    double convertedValue = baseValue / targetUnit.getConversionFactor(); 
+	    return new Weight(convertedValue, targetUnit);
+}
+public Weight add(Weight thatWeight) {
+    return QuantityMeasurementApp.demonstrateWeightAddition(this, thatWeight, this.getUnit());
+}
+public Weight add(Weight weight , WeightUnit targetUnit) {
+	return QuantityMeasurementApp.demonstrateWeightAddition(this, weight, targetUnit);
+}
+private Weight addAndConvert(Weight weight,WeightUnit targetUnit) {
+	Weight w1 = QuantityMeasurementApp.demonstrateWeightAddition(this, weight, targetUnit);
+	return w1.convertTo(targetUnit);
+}
+private double convertFromBaseUnitToTargetUnit(double weightInGrams,WeightUnit targetunit) {
+	Weight w1 = new Weight(weightInGrams,WeightUnit.GRAM);
+	Weight convertedWeight = w1.convertTo(targetunit);
+	return convertedWeight.getValue();
+}
+@Override
+public String toString() {
+    return value + " " + unit;
+}
 }
