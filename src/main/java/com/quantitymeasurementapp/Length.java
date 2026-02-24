@@ -1,5 +1,7 @@
 package com.quantitymeasurementapp;
 
+import java.util.Objects;
+
 public class Length{
 private double value;
 private LengthUnit unit;
@@ -23,6 +25,10 @@ public boolean equals(Object o) {
 	
 	Length other = (Length) o;
 return this.compare(other);
+}
+@Override
+public int hashCode() {
+	return Objects.hash(this.unit.convertToBaseUnit(value));
 }
 
 public static boolean demonstrateLengthEquality(Length length1,Length length2)

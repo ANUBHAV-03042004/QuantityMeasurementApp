@@ -23,7 +23,7 @@ class QuantityMeasurementAppTest {
 		assertThrows(IllegalArgumentException.class,()->QuantityMeasurementApp.demonstrateLengthAddition(length1,length2,unit));
 	}
 	@Test
-	public void checkInstanceAdddLength() {
+	public void checkInstanceAddLength() {
 		Length length1 = new Length(2.0,LengthUnit.FEET);
 		Length length2 = new Length(12.0,LengthUnit.INCHES);
 		Length sumLength=length1.addLength(length2, LengthUnit.INCHES);

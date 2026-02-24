@@ -23,12 +23,11 @@ public class QuantityMeasurementApp {
 	}
 
 public static void main(String[] args) {
-Length length1 = new Length(2.0,LengthUnit.FEET);
-Length length2 = new Length(12.0,LengthUnit.INCHES);
-System.out.println("Are lengths equal ? " +  length1.equals(length2));
-System.out.println(demonstrateLengthAddition(12.0, 13.0,LengthUnit.FEET));
-System.out.println(demonstrateLengthAddition(length1, length2,LengthUnit.YARDS));
-System.out.println(length1.addLength(2.0,LengthUnit.CENTIMETERS));
-System.out.println(length1.addLength(length2,LengthUnit.INCHES));
+double kilograms = 10.0;
+double gram = WeightUnit.KILOGRAM.convertToBaseUnit(kilograms);
+System.out.println(kilograms+" Kilograms in gram "+gram);
+
+double milligrams=WeightUnit.MILLIGRAM.convertFromBaseUnit(gram);
+System.out.println(gram+" grams in milligram "+ milligrams);
 }
 }
