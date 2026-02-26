@@ -1,48 +1,60 @@
 package com.quantitymeasurementapp;
 
 public class QuantityMeasurementApp {
-	public static Length demonstrateLengthAddition(Length length1,Length length2,LengthUnit targetUnit) {
-		if(length1 == null || length2 == null) throw new IllegalArgumentException("Length should not be null");
+	
+	public static <U extends IMeasurable> Quantity<U> demonstrateQuantityAddition(Quantity<U> length1,Quantity<U> length2,U targetUnit) {
+		if(length1 == null || length2 == null) throw new IllegalArgumentException("Quantity should not be null");
 		if(targetUnit == null ) throw new IllegalArgumentException("Target Unit Should not be null");
-		if(!Double.isFinite(length1.getValue()) || !Double.isFinite(length2.getValue())) throw new IllegalArgumentException("Lengths should be in finite range");
-		
-		Length convertedLength1 = length1.convertTo(targetUnit);
-		Length convertedLength2 = length2.convertTo(targetUnit);
+		if(!Double.isFinite(length1.getValue()) || !Double.isFinite(length2.getValue())) throw new IllegalArgumentException("Quantity should be in finite range");
+		if (!length1.getUnit().getClass().equals(length2.getUnit().getClass()))
+		    throw new IllegalArgumentException("Cannot add different unit types");
+		Quantity<U> convertedLength1 = length1.convertTo(targetUnit);
+		Quantity<U> convertedLength2 = length2.convertTo(targetUnit);
 		
 		 double sumValue = convertedLength1.getValue() + convertedLength2.getValue();
-		    return new Length(sumValue, targetUnit);
+		    return new Quantity<>(sumValue, targetUnit);
 	}
 
-	public static Length demonstrateLengthAddition(double length1,double length2,LengthUnit targetUnit) {
-	if(length1 <0 || length2<0) throw new IllegalArgumentException("Length should not be less than zero");
+	public static <U extends IMeasurable> Quantity<U> demonstrateQuantityAddition(double length1,double length2,U targetUnit) {
+	if(length1 <0 || length2<0) throw new IllegalArgumentException("Quantity should not be less than zero");
 	if(targetUnit == null ) throw new IllegalArgumentException("Target Unit Should not be null");
-	if(!Double.isFinite(length1) || !Double.isFinite(length2)) throw new IllegalArgumentException("Length value should be in finite range");
+	if(!Double.isFinite(length1) || !Double.isFinite(length2)) throw new IllegalArgumentException("Quantity value should be in finite range");
 
-	Length sum = new Length(length1 + length2,targetUnit);
-	return sum;
+	Quantity<U> sum = new Quantity<>(length1 + length2,targetUnit);
+	   return sum;
 	}
-	
-	public static Weight demonstrateWeightAddition(Weight weight1,Weight weight2,WeightUnit targetUnit) {
-		if(weight1 == null || weight2 == null) throw new IllegalArgumentException("Weight should not be null");
-		if(targetUnit == null ) throw new IllegalArgumentException("Target Unit Should not be null");
-		if(!Double.isFinite(weight1.getValue()) || !Double.isFinite(weight2.getValue())) throw new IllegalArgumentException("Weights should be in finite range");
-		
-		Weight convertedWeight1 = weight1.convertTo(targetUnit);
-		Weight convertedWeight2 = weight2.convertTo(targetUnit);
-		
-		 double sumValue = convertedWeight1.getValue() + convertedWeight2.getValue();
-		    return new Weight(sumValue, targetUnit);
+	public static void main(String[] args) {
+	    Quantity<LengthUnit> length1 =
+	            new Quantity<>(2.0, LengthUnit.FEET);
+
+	    Quantity<LengthUnit> length2 =
+	            new Quantity<>(200.0, LengthUnit.CENTIMETERS);
+
+	    System.out.println("Are equal? " + length1.equals(length2));
+
+	    Quantity<LengthUnit> sumLength =
+	            demonstrateQuantityAddition(length1, length2, LengthUnit.INCHES);
+
+	    System.out.println("Sum in meters: " + sumLength);
+
+
+	    Quantity<WeightUnit> weight1 =
+	            new Quantity<>(1.0, WeightUnit.KILOGRAM);
+
+	    Quantity<WeightUnit> weight2 =
+	            new Quantity<>(500.0, WeightUnit.GRAM);
+
+	    System.out.println("Are equal? " + weight1.equals(weight2));
+
+	    Quantity<WeightUnit> sumWeight =
+	            demonstrateQuantityAddition(weight1, weight2, WeightUnit.GRAM);
+
+	    System.out.println("Sum in grams: " + sumWeight);
+
+
+	    Quantity<WeightUnit> doubleAdd =
+	            demonstrateQuantityAddition(200, 300, WeightUnit.GRAM);
+
+	    System.out.println("200g + 300g = " + doubleAdd);
 	}
-
-
-public static void main(String[] args) {
-	double kilograms = 10.0;
-	double grams = WeightUnit.GRAM.convertFromBaseUnit(
-	                    WeightUnit.KILOGRAM.convertToBaseUnit(kilograms));
-
-	System.out.println(kilograms + " kilograms in grams = " + grams);
-
-double milligrams=WeightUnit.MILLIGRAM.convertFromBaseUnit(grams);
-System.out.println(grams+" grams in milligram "+ milligrams);
-}
 }
