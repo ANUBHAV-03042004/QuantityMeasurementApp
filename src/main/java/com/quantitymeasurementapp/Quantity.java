@@ -91,6 +91,54 @@ public class Quantity<U extends IMeasurable>{
 	public Quantity<U> addQuantity(double value) {
 	    return addQuantity(value, this.unit);
 	}
+	
+//	subtraction
+	
+	public Quantity<U> subQuantity(Quantity<U> thatLength,U targetUnit) {
+	    return QuantityMeasurementApp.demonstrateQuantitySubtraction(this, thatLength,targetUnit);
+	}
+	public Quantity<U> subQuantity(double value ,U targetUnit) {
+	    return QuantityMeasurementApp.demonstrateQuantitySubtraction(this.value, value,targetUnit);
+	}
+	public Quantity<U> subQuantity(Quantity<U> other) {
+	    if (other == null)
+	        throw new IllegalArgumentException("Quantity cannot be null");
+
+	    return subQuantity(other, this.unit);
+	}
+	public Quantity<U> subQuantity(double value) {
+	    return subQuantity(value, this.unit);
+	}
+	
+//	division
+	public Quantity<U> divQuantity(Quantity<U> thatLength,U targetUnit) {
+	    return QuantityMeasurementApp.demonstrateQuantityDivision(this, thatLength,targetUnit);
+	}
+	public Quantity<U> divQuantity(double value ,U targetUnit) {
+	    return QuantityMeasurementApp.demonstrateQuantityDivision(this.value, value,targetUnit);
+	}
+	public Quantity<U> divQuantity(Quantity<U> other) {
+
+	    if (other == null)
+	        throw new IllegalArgumentException("Quantity cannot be null");
+
+	    if (!this.unit.getClass().equals(other.unit.getClass()))
+	        throw new IllegalArgumentException("Cannot divide different unit types");
+
+	    if (other.value == 0)
+	        throw new ArithmeticException("Division by zero not allowed");
+
+	    double baseValue1 = this.unit.convertToBaseUnit(this.value);
+	    double baseValue2 = other.unit.convertToBaseUnit(other.value);
+
+	    double result = baseValue1 / baseValue2;
+
+	    return new Quantity<>(result, this.unit);
+	}
+	public Quantity<U> divQuantity(double value) {
+	    return subQuantity(value, this.unit);
+	}
+	
 	@Override
 	public String toString() {
 	    return String.format(

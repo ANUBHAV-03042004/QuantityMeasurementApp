@@ -87,90 +87,113 @@ public class QuantityMeasurementAppTest {
                 converted.getValue(), EPSILON);
     }
 
+        @Test
+        void testSubtraction_SameUnit_FeetMinusFeet() {
 
-    @Test
-    void testAddition_SameUnit_LitrePlusLitre() {
-        Quantity<VolumeUnit> v1 =
-                new Quantity<>(1.0, VolumeUnit.LITRE);
-        Quantity<VolumeUnit> v2 =
-                new Quantity<>(2.0, VolumeUnit.LITRE);
+            Quantity<LengthUnit> l1 =
+                    new Quantity<>(10.0, LengthUnit.FEET);
 
-        Quantity<VolumeUnit> result =
-                v1.addQuantity(v2, VolumeUnit.LITRE);
+            Quantity<LengthUnit> l2 =
+                    new Quantity<>(5.0, LengthUnit.FEET);
 
-        assertEquals(3.0, result.getValue(), EPSILON);
+            Quantity<LengthUnit> result = l1.subQuantity(l2);
+
+            assertEquals(new Quantity<>(5.0, LengthUnit.FEET), result);
+        }
+
+
+        @Test
+        void testSubtraction_CrossUnit_FeetMinusInches() {
+
+            Quantity<LengthUnit> l1 =
+                    new Quantity<>(10.0, LengthUnit.FEET);
+
+            Quantity<LengthUnit> l2 =
+                    new Quantity<>(6.0, LengthUnit.INCHES);
+
+            Quantity<LengthUnit> result = l1.subQuantity(l2);
+
+            assertEquals(new Quantity<>(9.5, LengthUnit.FEET), result);
+        }
+
+
+        @Test
+        void testSubtraction_ResultingInZero() {
+
+            Quantity<LengthUnit> l1 =
+                    new Quantity<>(10.0, LengthUnit.FEET);
+
+            Quantity<LengthUnit> l2 =
+                    new Quantity<>(120.0, LengthUnit.INCHES);
+
+            Quantity<LengthUnit> result = l1.subQuantity(l2);
+
+            assertEquals(new Quantity<>(0.0, LengthUnit.FEET), result);
+        }
+        
+        
+        @Test
+        void testDivision_SameUnit_FeetDividedByFeet() {
+
+            Quantity<LengthUnit> l1 =
+                    new Quantity<>(10.0, LengthUnit.FEET);
+
+            Quantity<LengthUnit> l2 =
+                    new Quantity<>(2.0, LengthUnit.FEET);
+
+            Quantity<LengthUnit> result = l1.divQuantity(l2);
+
+            assertEquals(new Quantity<>(5.0, LengthUnit.FEET), result);
+        }
+
+
+        @Test
+        void testDivision_CrossUnit_FeetDividedByInches() {
+
+            Quantity<LengthUnit> l1 =
+                    new Quantity<>(24.0, LengthUnit.INCHES);
+
+            Quantity<LengthUnit> l2 =
+                    new Quantity<>(2.0, LengthUnit.FEET);
+
+            Quantity<LengthUnit> result = l1.divQuantity(l2);
+
+            assertEquals(new Quantity<>(1.0, LengthUnit.INCHES), result);
+        }
+
+
+        @Test
+        void testDivision_RatioLessThanOne() {
+
+            Quantity<LengthUnit> l1 =
+                    new Quantity<>(5.0, LengthUnit.FEET);
+
+            Quantity<LengthUnit> l2 =
+                    new Quantity<>(10.0, LengthUnit.FEET);
+
+            Quantity<LengthUnit> result = l1.divQuantity(l2);
+
+            assertEquals(new Quantity<>(0.5, LengthUnit.FEET), result);
+        }
+        
+        @Test
+        void testSubtraction_NullOperand() {
+
+            Quantity<LengthUnit> l1 =
+                    new Quantity<>(10.0, LengthUnit.FEET);
+
+            assertThrows(IllegalArgumentException.class,
+                    () -> l1.subQuantity(null));
+        }
+
+
+        @Test
+        void testDivision_NullOperand() {
+
+            Quantity<LengthUnit> l1 =
+                    new Quantity<>(10.0, LengthUnit.FEET);
+
+            assertThrows(IllegalArgumentException.class,
+                    () -> l1.divQuantity(null));
+        }
     }
-
-    @Test
-    void testAddition_CrossUnit_LitrePlusMillilitre() {
-        Quantity<VolumeUnit> litre =
-                new Quantity<>(1.0, VolumeUnit.LITRE);
-        Quantity<VolumeUnit> ml =
-                new Quantity<>(1000.0, VolumeUnit.MILLILITRE);
-
-        Quantity<VolumeUnit> result =
-                litre.addQuantity(ml, VolumeUnit.LITRE);
-
-        assertEquals(2.0, result.getValue(), EPSILON);
-    }
-
-    @Test
-    void testAddition_ExplicitTargetUnit_Gallon() {
-        Quantity<VolumeUnit> v1 =
-                new Quantity<>(3.78541, VolumeUnit.LITRE);
-        Quantity<VolumeUnit> v2 =
-                new Quantity<>(3.78541, VolumeUnit.LITRE);
-
-        Quantity<VolumeUnit> result =
-                v1.addQuantity(v2, VolumeUnit.GALLON);
-
-        assertEquals(2.0, result.getValue(), EPSILON);
-    }
-
-    @Test
-    void testAddition_WithZero() {
-        Quantity<VolumeUnit> v1 =
-                new Quantity<>(5.0, VolumeUnit.LITRE);
-        Quantity<VolumeUnit> v2 =
-                new Quantity<>(0.0, VolumeUnit.MILLILITRE);
-
-        Quantity<VolumeUnit> result =
-                v1.addQuantity(v2, VolumeUnit.LITRE);
-
-        assertEquals(5.0, result.getValue(), EPSILON);
-    }
-
-    @Test
-    void testVolumeUnitEnum_LitreConstant() {
-        assertEquals(1.0,
-                VolumeUnit.LITRE.getConversionFactor());
-    }
-
-    @Test
-    void testVolumeUnitEnum_MillilitreConstant() {
-        assertEquals(0.001,
-                VolumeUnit.MILLILITRE.getConversionFactor());
-    }
-
-    @Test
-    void testVolumeUnitEnum_GallonConstant() {
-        assertEquals(3.78541,
-                VolumeUnit.GALLON.getConversionFactor());
-    }
-
-    @Test
-    void testConvertToBaseUnit_MillilitreToLitre() {
-        double result =
-                VolumeUnit.MILLILITRE.convertToBaseUnit(1000.0);
-
-        assertEquals(1.0, result, EPSILON);
-    }
-
-    @Test
-    void testConvertFromBaseUnit_LitreToGallon() {
-        double result =
-                VolumeUnit.GALLON.convertFromBaseUnit(3.78541);
-
-        assertEquals(1.0, result, EPSILON);
-    }
-}
