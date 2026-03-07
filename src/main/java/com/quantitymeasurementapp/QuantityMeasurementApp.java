@@ -37,14 +37,22 @@ public class QuantityMeasurementApp {
         return new Quantity<>(result, targetUnit);
     }
 
-    public static <U extends Enum<U> & IMeasurable> Quantity<U> demonstrateQuantityDivision(
-            Quantity<U> q1, Quantity<U> q2, U targetUnit) {
+//    public static <U extends Enum<U> & IMeasurable> Quantity<U> demonstrateQuantityDivision(
+//            Quantity<U> q1, Quantity<U> q2, U targetUnit) {
+//
+//        validateQuantityOperands(q1, q2, targetUnit, "divide");
+//
+//  
+//        double ratio = q1.divide(q2);          // dimensionless; divide() throws on zero
+//        return new Quantity<>(ratio, targetUnit);
+//    }
+    
+    
+    public static <U extends Enum<U> & IMeasurable> double demonstrateQuantityDivision(Quantity<U> q1, Quantity<U> q2) {
 
-        validateQuantityOperands(q1, q2, targetUnit, "divide");
+        validateQuantityOperands(q1, q2, q1.getUnit(), "divide");
 
-  
-        double ratio = q1.divide(q2);          // dimensionless; divide() throws on zero
-        return new Quantity<>(ratio, targetUnit);
+        return q1.divide(q2);
     }
 
    
@@ -120,46 +128,25 @@ public class QuantityMeasurementApp {
         Quantity<LengthUnit> l4 = new Quantity<>(6.0,  LengthUnit.INCHES);
         System.out.println("10 ft - 6 in           = " + l3.subtract(l4));       // 9.5 FEET
 
-        Quantity<VolumeUnit> v3 = new Quantity<>(5.0, VolumeUnit.LITRE);
-        Quantity<VolumeUnit> v4 = new Quantity<>(2.0, VolumeUnit.LITRE);
-        System.out.println("5 L - 2 L (MILLILITRE) = " +
-                v3.subtract(v4, VolumeUnit.MILLILITRE));                           // 3000.0 ML
+        System.out.println("100°C == 100 ft     : " +
+                new Quantity<>(100.0, TemperatureUnit.CELSIUS)
+                        .equals(new Quantity<>(100.0, LengthUnit.FEET)));          // false
 
- 
-        Quantity<LengthUnit> l5 = new Quantity<>(10.0, LengthUnit.FEET);
-        Quantity<LengthUnit> l6 = new Quantity<>(2.0,  LengthUnit.FEET);
-        System.out.printf("10 ft / 2 ft  = %.2f%n", l5.divide(l6));              // 5.00
-
-        Quantity<LengthUnit> l7 = new Quantity<>(24.0, LengthUnit.INCHES);
-        Quantity<LengthUnit> l8 = new Quantity<>(2.0,  LengthUnit.FEET);
-        System.out.printf("24 in / 2 ft  = %.2f%n", l7.divide(l8));              // 1.00
+        System.out.println("50°C == 50 kg       : " +
+                new Quantity<>(50.0, TemperatureUnit.CELSIUS)
+                        .equals(new Quantity<>(50.0, WeightUnit.KILOGRAM)));       // false
 
 
-        System.out.printf("ADD.compute(10, 5)      = %.1f%n", ArithmeticOperation.ADD.compute(10, 5));
-        System.out.printf("SUBTRACT.compute(10, 5) = %.1f%n", ArithmeticOperation.SUBTRACT.compute(10, 5));
-        System.out.printf("DIVIDE.compute(10, 2)   = %.1f%n", ArithmeticOperation.DIVIDE.compute(10, 2));
-        System.out.printf("MULTIPLY.compute(4, 3)  = %.1f%n", ArithmeticOperation.MULTIPLY.compute(4, 3));
+        System.out.println("CELSIUS.supportsArithmetic()  = " +
+                TemperatureUnit.CELSIUS.supportsArithmetic());                     // false
+        System.out.println("CELSIUS.supportsAddition()    = " +
+                TemperatureUnit.CELSIUS.supportsAddition());                       // false
+        System.out.println("CELSIUS.supportsDivision()    = " +
+                TemperatureUnit.CELSIUS.supportsDivision());                       // false
+        System.out.println("FEET.supportsArithmetic()     = " +
+                LengthUnit.FEET.supportsArithmetic());                             // true
+        System.out.println("KILOGRAM.supportsAddition()   = " +
+                WeightUnit.KILOGRAM.supportsAddition());       
 
-        try {
-            new Quantity<>(10.0, LengthUnit.FEET).add(null);
-        } catch (IllegalArgumentException e) {
-            System.out.println("null operand    → " + e.getMessage());
-        }
-
-        try {
-            Quantity<LengthUnit> len = new Quantity<>(10.0, LengthUnit.FEET);
-            @SuppressWarnings("unchecked")
-            Quantity<WeightUnit> wgt = new Quantity<>(5.0, WeightUnit.KILOGRAM);
-            len.add((Quantity) wgt);   // cross-category: throws IAE
-        } catch (IllegalArgumentException e) {
-            System.out.println("cross-category  → " + e.getMessage());
-        }
-
-        try {
-            new Quantity<>(10.0, LengthUnit.FEET)
-                    .divide(new Quantity<>(0.0, LengthUnit.FEET));
-        } catch (ArithmeticException e) {
-            System.out.println("divide-by-zero  → " + e.getMessage());
-        }
     }
 }
