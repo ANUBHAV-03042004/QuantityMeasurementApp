@@ -1,4 +1,4 @@
-package com.quantitymeasurementapp;
+package com.quantitymeasurementapp.core;
 import java.util.function.DoubleBinaryOperator;
 
 public enum ArithmeticOperation {
