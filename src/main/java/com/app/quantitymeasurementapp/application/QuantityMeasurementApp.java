@@ -12,6 +12,7 @@ import com.app.quantitymeasurementapp.util.ApplicationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.SQLException;
 import java.util.List;
 
 public class QuantityMeasurementApp {
@@ -32,6 +33,7 @@ public class QuantityMeasurementApp {
         this.controller = new QuantityMeasurementController(service);
 
         logger.info("App initialized. Pool stats: {}", repository.getPoolStatistics());
+        
     }
 
     private IQuantityMeasurementRepository createRepository(ApplicationConfig config) {
@@ -99,6 +101,14 @@ public class QuantityMeasurementApp {
 
         int start = Math.max(0, history.size() - 3);
         history.subList(start, history.size()).forEach(e -> logger.info("Record: {}", e));
+        try {
+			org.h2.tools.Server.createWebServer("-web", "-webAllowOthers", "-webPort", "8083").start();
+			   logger.info("H2 Console at http://localhost:8085  JDBC URL: jdbc:h2:mem:quantitydb");
+		        Thread.sleep(60000);
+		} catch (SQLException | InterruptedException e1) {
+			e1.printStackTrace();
+		}
+     
 
         app.deleteAllMeasurements();
         app.closeResources();
