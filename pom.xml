@@ -12,14 +12,14 @@
     <name>Quantity Measurement App</name>
 
     <properties>
-        <java.version>17</java.version>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <java.version>21</java.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <slf4j.version>2.0.9</slf4j.version>
         <logback.version>1.4.14</logback.version>
         <junit.version>4.13.2</junit.version>
-        <mockito.version>5.5.0</mockito.version>
+        <mockito.version>5.12.0</mockito.version>
         <h2.version>2.2.224</h2.version>
         <mysql.version>8.0.33</mysql.version>
     </properties>
