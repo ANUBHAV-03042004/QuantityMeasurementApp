@@ -1,6 +1,7 @@
 package com.app.quantitymeasurementapp.service;
 
 import com.app.quantitymeasurementapp.exception.QuantityMeasurementException;
+import com.app.quantitymeasurementapp.messaging.RabbitMQProducer;
 import com.app.quantitymeasurementapp.model.QuantityDTO;
 import com.app.quantitymeasurementapp.model.QuantityMeasurementDTO;
 import com.app.quantitymeasurementapp.model.QuantityMeasurementEntity;
@@ -26,6 +27,9 @@ class QuantityMeasurementServiceTest {
     @Mock
     private QuantityMeasurementRepository repository;
 
+    @Mock
+    private RabbitMQProducer rabbitMQProducer;   // required by updated constructor
+
     @InjectMocks
     private QuantityMeasurementServiceImpl service;
 
@@ -33,6 +37,8 @@ class QuantityMeasurementServiceTest {
     void setUpRepositoryStub() {
         lenient().when(repository.save(any(QuantityMeasurementEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+        // RabbitMQ publish calls are fire-and-forget — silence them in unit tests
+        lenient().doNothing().when(rabbitMQProducer).publishMeasurementEvent(any());
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
