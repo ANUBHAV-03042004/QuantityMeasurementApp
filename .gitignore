@@ -4,6 +4,8 @@
 .project
 .settings/data/
 logs/
+.settings/
+.gitignore
 data/
 
 # Compiled class file
