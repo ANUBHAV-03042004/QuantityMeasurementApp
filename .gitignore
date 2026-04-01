@@ -5,6 +5,7 @@
 data/
 logs/
 .factorypath
+.gitignore
 # IDE
 .idea/
 *.iml
@@ -16,4 +17,3 @@ src/test/resources/application.properties
 # OS
 .DS_Store
 Thumbs.db
-.settings/
