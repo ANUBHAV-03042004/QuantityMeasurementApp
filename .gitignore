@@ -1,11 +1,10 @@
 /target/
 .classpath
 .project
-<<<<<<< HEAD
 .settings/
 data/
 logs/
-
+.factorypath
 # IDE
 .idea/
 *.iml
@@ -17,6 +16,4 @@ src/test/resources/application.properties
 # OS
 .DS_Store
 Thumbs.db
-=======
 .settings/
->>>>>>> main
