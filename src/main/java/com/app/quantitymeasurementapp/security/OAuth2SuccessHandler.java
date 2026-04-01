@@ -13,24 +13,14 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
-/**
- * Called by Spring Security after a successful Google OAuth2 login.
- *
- * Flow:
- *   1. Extract Google profile attributes from OAuth2User
- *   2. Find or create the User record in the DB
- *   3. Issue a JWT
- *   4. Redirect to /oauth2-callback.html?token=<jwt>
- *      The static page extracts the token, saves it to localStorage,
- *      and navigates the user to operations.html.
- */
 @Component
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private static final Logger log = LoggerFactory.getLogger(OAuth2SuccessHandler.class);
 
     // Frontend callback page served from Spring Boot's static resources
-    private static final String FRONTEND_CALLBACK = "/oauth2-callback.html";
+    private static final String FRONTEND_CALLBACK = "https://anubhav-03042004.github.io/QuantityMeasurementApp-Frontend/oauth2-callback.html";
+//    		"/oauth2-callback.html";
 
     private final JwtUtil        jwtUtil;
     private final UserRepository userRepository;
