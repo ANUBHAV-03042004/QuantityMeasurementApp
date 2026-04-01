@@ -16,12 +16,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * Handles:
- *   POST /api/v1/auth/register  — email + password signup
- *   POST /api/v1/auth/login     — email + password login → JWT
- *   GET  /oauth2/success        — redirect landing after Google OAuth2
- */
+
 @RestController
 @Tag(name = "Authentication", description = "Register, login and Google OAuth2")
 public class AuthController {
@@ -104,12 +99,6 @@ public class AuthController {
 
     // ── OAuth2 success landing ────────────────────────────────────────────────
 
-    /**
-     * After Google login, OAuth2SuccessHandler redirects here with the JWT
-     * in the query param so the frontend can pick it up.
-     *
-     * GET /oauth2/success?token=<jwt>
-     */
     @GetMapping("/oauth2/success")
     @Operation(summary = "OAuth2 redirect landing — returns the JWT issued after Google login")
     public ResponseEntity<AuthResponse> oauth2Success(@RequestParam String token) {
