@@ -1,6 +1,18 @@
 /target/
 .classpath
 .project
-.settings/data/
-logs/
+.settings/
 data/
+logs/
+
+# IDE
+.idea/
+*.iml
+
+# Secrets — NEVER commit these
+src/main/resources/application-prod.properties
+src/test/resources/application.properties
+
+# OS
+.DS_Store
+Thumbs.db
