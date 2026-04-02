@@ -34,7 +34,7 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
     // ── COMPARE ─────────────────────────────────────────────────────────────
 
     @Override
-    public QuantityMeasurementDTO compare(QuantityDTO q1, QuantityDTO q2) {
+    public QuantityMeasurementDTO compare(QuantityDTO q1, QuantityDTO q2, Long userId) {
         validateNotNull(q1, q2, "COMPARE");
         try {
             validateSameCategory(q1, q2, "COMPARE");
@@ -44,14 +44,15 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
                     q1.getValue(), q1.getUnit(), q1.getMeasurementType(),
                     q2.getValue(), q2.getUnit(), q2.getMeasurementType(),
                     result);
+            entity.setUserId(userId);
             repository.save(entity);
             return QuantityMeasurementDTO.fromEntity(entity);
         } catch (QuantityMeasurementException e) {
-            saveError(q1, q2, "COMPARE", e.getMessage());
+            saveError(q1, q2, "COMPARE", e.getMessage(), userId);
             throw e;
         } catch (Exception e) {
             String msg = "COMPARE failed: " + e.getMessage();
-            saveError(q1, q2, "COMPARE", msg);
+            saveError(q1, q2, "COMPARE", msg, userId);
             throw new QuantityMeasurementException(msg, e);
         }
     }
@@ -59,7 +60,7 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
     // ── CONVERT ─────────────────────────────────────────────────────────────
 
     @Override
-    public QuantityMeasurementDTO convert(QuantityDTO source, QuantityDTO target) {
+    public QuantityMeasurementDTO convert(QuantityDTO source, QuantityDTO target, Long userId) {
         if (source == null || target == null)
             throw new QuantityMeasurementException("Null input is not allowed for CONVERT");
         try {
@@ -72,14 +73,15 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
                     source.getValue(), source.getUnit(), source.getMeasurementType(),
                     "CONVERT",
                     resultValue, target.getUnit(), target.getMeasurementType());
+            entity.setUserId(userId);
             repository.save(entity);
             return QuantityMeasurementDTO.fromEntity(entity);
         } catch (QuantityMeasurementException e) {
-            saveError(source, target, "CONVERT", e.getMessage());
+            saveError(source, target, "CONVERT", e.getMessage(), userId);
             throw e;
         } catch (Exception e) {
             String msg = "CONVERT failed: " + e.getMessage();
-            saveError(source, target, "CONVERT", msg);
+            saveError(source, target, "CONVERT", msg, userId);
             throw new QuantityMeasurementException(msg, e);
         }
     }
@@ -87,7 +89,7 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
     // ── ADD ──────────────────────────────────────────────────────────────────
 
     @Override
-    public QuantityMeasurementDTO add(QuantityDTO q1, QuantityDTO q2) {
+    public QuantityMeasurementDTO add(QuantityDTO q1, QuantityDTO q2, Long userId) {
         validateNotNull(q1, q2, "ADD");
         try {
             validateSameCategory(q1, q2, "ADD");
@@ -98,14 +100,15 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
                     q2.getValue(), q2.getUnit(), q2.getMeasurementType(),
                     "ADD",
                     resultValue, q1.getUnit(), q1.getMeasurementType());
+            entity.setUserId(userId);
             repository.save(entity);
             return QuantityMeasurementDTO.fromEntity(entity);
         } catch (QuantityMeasurementException e) {
-            saveError(q1, q2, "ADD", e.getMessage());
+            saveError(q1, q2, "ADD", e.getMessage(), userId);
             throw e;
         } catch (Exception e) {
             String msg = "ADD failed: " + e.getMessage();
-            saveError(q1, q2, "ADD", msg);
+            saveError(q1, q2, "ADD", msg, userId);
             throw new QuantityMeasurementException(msg, e);
         }
     }
@@ -113,7 +116,7 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
     // ── SUBTRACT ────────────────────────────────────────────────────────────
 
     @Override
-    public QuantityMeasurementDTO subtract(QuantityDTO q1, QuantityDTO q2) {
+    public QuantityMeasurementDTO subtract(QuantityDTO q1, QuantityDTO q2, Long userId) {
         validateNotNull(q1, q2, "SUBTRACT");
         try {
             validateSameCategory(q1, q2, "SUBTRACT");
@@ -124,14 +127,15 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
                     q2.getValue(), q2.getUnit(), q2.getMeasurementType(),
                     "SUBTRACT",
                     resultValue, q1.getUnit(), q1.getMeasurementType());
+            entity.setUserId(userId);
             repository.save(entity);
             return QuantityMeasurementDTO.fromEntity(entity);
         } catch (QuantityMeasurementException e) {
-            saveError(q1, q2, "SUBTRACT", e.getMessage());
+            saveError(q1, q2, "SUBTRACT", e.getMessage(), userId);
             throw e;
         } catch (Exception e) {
             String msg = "SUBTRACT failed: " + e.getMessage();
-            saveError(q1, q2, "SUBTRACT", msg);
+            saveError(q1, q2, "SUBTRACT", msg, userId);
             throw new QuantityMeasurementException(msg, e);
         }
     }
@@ -139,7 +143,7 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
     // ── DIVIDE ──────────────────────────────────────────────────────────────
 
     @Override
-    public QuantityMeasurementDTO divide(QuantityDTO q1, QuantityDTO q2) {
+    public QuantityMeasurementDTO divide(QuantityDTO q1, QuantityDTO q2, Long userId) {
         validateNotNull(q1, q2, "DIVIDE");
         try {
             validateSameCategory(q1, q2, "DIVIDE");
@@ -150,18 +154,19 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
                     q2.getValue(), q2.getUnit(), q2.getMeasurementType(),
                     "DIVIDE",
                     resultValue, q1.getUnit(), q1.getMeasurementType());
+            entity.setUserId(userId);
             repository.save(entity);
             return QuantityMeasurementDTO.fromEntity(entity);
         } catch (QuantityMeasurementException e) {
-            saveError(q1, q2, "DIVIDE", e.getMessage());
+            saveError(q1, q2, "DIVIDE", e.getMessage(), userId);
             throw e;
         } catch (ArithmeticException e) {
             String msg = "DIVIDE failed: " + e.getMessage();
-            saveError(q1, q2, "DIVIDE", msg);
+            saveError(q1, q2, "DIVIDE", msg, userId);
             throw new QuantityMeasurementException(msg, e);
         } catch (Exception e) {
             String msg = "DIVIDE failed: " + e.getMessage();
-            saveError(q1, q2, "DIVIDE", msg);
+            saveError(q1, q2, "DIVIDE", msg, userId);
             throw new QuantityMeasurementException(msg, e);
         }
     }
@@ -169,25 +174,25 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
     // ── History ──────────────────────────────────────────────────────────────
 
     @Override
-    public List<QuantityMeasurementDTO> getHistoryByOperation(String operation) {
+    public List<QuantityMeasurementDTO> getHistoryByOperation(String operation, Long userId) {
         return QuantityMeasurementDTO.fromEntityList(
-                repository.findByOperation(operation.toUpperCase()));
+                repository.findByUserIdAndOperation(userId, operation.toUpperCase()));
     }
 
     @Override
-    public List<QuantityMeasurementDTO> getHistoryByMeasurementType(String measurementType) {
+    public List<QuantityMeasurementDTO> getHistoryByMeasurementType(String measurementType, Long userId) {
         return QuantityMeasurementDTO.fromEntityList(
-                repository.findByThisMeasurementType(measurementType));
+                repository.findByUserIdAndThisMeasurementType(userId, measurementType));
     }
 
     @Override
-    public long getOperationCount(String operation) {
-        return repository.countByOperationAndIsErrorFalse(operation.toUpperCase());
+    public long getOperationCount(String operation, Long userId) {
+        return repository.countByUserIdAndOperationAndIsErrorFalse(userId, operation.toUpperCase());
     }
 
     @Override
-    public List<QuantityMeasurementDTO> getErrorHistory() {
-        return QuantityMeasurementDTO.fromEntityList(repository.findByIsErrorTrue());
+    public List<QuantityMeasurementDTO> getErrorHistory(Long userId) {
+        return QuantityMeasurementDTO.fromEntityList(repository.findByUserIdAndIsErrorTrue(userId));
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────
@@ -295,7 +300,7 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
                     + " because temperature values are absolute points on a scale, not additive quantities.");
     }
 
-    private void saveError(QuantityDTO q1, QuantityDTO q2, String op, String errorMessage) {
+    private void saveError(QuantityDTO q1, QuantityDTO q2, String op, String errorMessage, Long userId) {
         try {
             Double thatValue = q2 != null ? q2.getValue()           : null;
             String thatUnit  = q2 != null ? q2.getUnit()            : null;
@@ -306,6 +311,7 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
                     q1 != null ? q1.getMeasurementType() : "UNKNOWN",
                     thatValue, thatUnit, thatType,
                     op, errorMessage);
+            err.setUserId(userId);
             repository.save(err);
         } catch (Exception ignored) {
             log.warn("Could not persist error record for operation {}", op);

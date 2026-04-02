@@ -6,6 +6,7 @@ import com.app.quantitymeasurementapp.security.JwtAuthFilter;
 import com.app.quantitymeasurementapp.security.JwtUtil;
 import com.app.quantitymeasurementapp.security.OAuth2SuccessHandler;
 import com.app.quantitymeasurementapp.service.IQuantityMeasurementService;
+import com.app.quantitymeasurementapp.user.UserRepository;
 import com.app.quantitymeasurementapp.util.SecurityConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -71,6 +72,13 @@ class QuantityMeasurementControllerTest {
     @MockBean
     private UserDetailsService userDetailsService;  // DaoAuthenticationProvider depends on it
 
+    // ── NEW: needed by QuantityMeasurementController.resolveUserId() ──────────
+    // The controller autowires UserRepository to look up the User by email
+    // and extract their id. Without this mock the application context fails
+    // to start during the @WebMvcTest slice.
+    @MockBean
+    private UserRepository userRepository;
+
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -127,10 +135,12 @@ class QuantityMeasurementControllerTest {
     // ── POST /compare ─────────────────────────────────────────────────────────
 
     @Test
-    @WithMockUser   // <-- simulates a logged-in user so the 401 gate is passed
+    @WithMockUser
     @DisplayName("POST /compare with valid input returns 200 and result")
     void postCompare_validInput_returns200() throws Exception {
-        when(service.compare(any(), any())).thenReturn(compareResult());
+        // Service now takes (QuantityDTO, QuantityDTO, Long userId)
+        // Use any() for all three — userId is resolved internally and irrelevant here
+        when(service.compare(any(), any(), any())).thenReturn(compareResult());
 
         mockMvc.perform(post(BASE_URL + "/compare")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -173,24 +183,26 @@ class QuantityMeasurementControllerTest {
                         .content(nullValueBody))
                .andExpect(status().isBadRequest());
     }
+
     @Test
     @WithAnonymousUser
     @DisplayName("POST /compare without authentication returns 200 (public endpoint)")
     void postCompare_noAuth_returns200() throws Exception {
-        when(service.compare(any(), any())).thenReturn(compareResult());
+        when(service.compare(any(), any(), any())).thenReturn(compareResult());
 
         mockMvc.perform(post(BASE_URL + "/compare")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(COMPARE_BODY))
                .andExpect(status().isOk());
     }
+
     // ── POST /add ─────────────────────────────────────────────────────────────
 
     @Test
     @WithMockUser
     @DisplayName("POST /add with valid input returns 200 and result")
     void postAdd_validInput_returns200() throws Exception {
-        when(service.add(any(), any())).thenReturn(addResult());
+        when(service.add(any(), any(), any())).thenReturn(addResult());
 
         mockMvc.perform(post(BASE_URL + "/add")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -205,7 +217,7 @@ class QuantityMeasurementControllerTest {
     @WithMockUser
     @DisplayName("POST /add when service throws exception returns 400")
     void postAdd_serviceThrowsException_returns400() throws Exception {
-        when(service.add(any(), any()))
+        when(service.add(any(), any(), any()))
                 .thenThrow(new QuantityMeasurementException("Cannot ADD different measurement categories"));
 
         mockMvc.perform(post(BASE_URL + "/add")
@@ -226,7 +238,7 @@ class QuantityMeasurementControllerTest {
         dto.setOperation("SUBTRACT");
         dto.setResultValue(12.0);
         dto.setResultUnit("INCHES");
-        when(service.subtract(any(), any())).thenReturn(dto);
+        when(service.subtract(any(), any(), any())).thenReturn(dto);
 
         String body = """
                 {
@@ -247,7 +259,7 @@ class QuantityMeasurementControllerTest {
     @WithMockUser
     @DisplayName("POST /divide divide-by-zero returns 400")
     void postDivide_byZero_returns400() throws Exception {
-        when(service.divide(any(), any()))
+        when(service.divide(any(), any(), any()))
                 .thenThrow(new QuantityMeasurementException("DIVIDE failed: Divide by zero"));
 
         String body = """
@@ -268,7 +280,8 @@ class QuantityMeasurementControllerTest {
     @WithMockUser
     @DisplayName("GET /history/operation/COMPARE returns 200 and list")
     void getHistoryByOperation_returns200() throws Exception {
-        when(service.getHistoryByOperation("COMPARE")).thenReturn(List.of(compareResult()));
+        // History methods now take (String operation, Long userId)
+        when(service.getHistoryByOperation(any(), any())).thenReturn(List.of(compareResult()));
 
         mockMvc.perform(get(BASE_URL + "/history/operation/COMPARE"))
                .andExpect(status().isOk())
@@ -280,7 +293,7 @@ class QuantityMeasurementControllerTest {
     @WithMockUser
     @DisplayName("GET /history/type/LengthUnit returns 200 and list")
     void getHistoryByType_returns200() throws Exception {
-        when(service.getHistoryByMeasurementType("LengthUnit")).thenReturn(List.of(compareResult()));
+        when(service.getHistoryByMeasurementType(any(), any())).thenReturn(List.of(compareResult()));
 
         mockMvc.perform(get(BASE_URL + "/history/type/LengthUnit"))
                .andExpect(status().isOk())
@@ -291,7 +304,7 @@ class QuantityMeasurementControllerTest {
     @WithMockUser
     @DisplayName("GET /count/ADD returns 200 with count")
     void countByOperation_returns200() throws Exception {
-        when(service.getOperationCount("ADD")).thenReturn(5L);
+        when(service.getOperationCount(any(), any())).thenReturn(5L);
 
         mockMvc.perform(get(BASE_URL + "/count/ADD"))
                .andExpect(status().isOk())
@@ -305,7 +318,7 @@ class QuantityMeasurementControllerTest {
         QuantityMeasurementDTO errDto = new QuantityMeasurementDTO();
         errDto.setError(true);
         errDto.setErrorMessage("incompatible types");
-        when(service.getErrorHistory()).thenReturn(List.of(errDto));
+        when(service.getErrorHistory(any())).thenReturn(List.of(errDto));
 
         mockMvc.perform(get(BASE_URL + "/history/errored"))
                .andExpect(status().isOk())

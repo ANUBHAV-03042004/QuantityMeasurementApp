@@ -7,23 +7,23 @@ import java.util.List;
 
 public interface IQuantityMeasurementService {
 
-    QuantityMeasurementDTO compare(QuantityDTO q1, QuantityDTO q2);
+    QuantityMeasurementDTO compare(QuantityDTO q1, QuantityDTO q2, Long userId);
 
-    QuantityMeasurementDTO convert(QuantityDTO source, QuantityDTO target);
+    QuantityMeasurementDTO convert(QuantityDTO source, QuantityDTO target, Long userId);
 
-    QuantityMeasurementDTO add(QuantityDTO q1, QuantityDTO q2);
+    QuantityMeasurementDTO add(QuantityDTO q1, QuantityDTO q2, Long userId);
 
-    QuantityMeasurementDTO subtract(QuantityDTO q1, QuantityDTO q2);
+    QuantityMeasurementDTO subtract(QuantityDTO q1, QuantityDTO q2, Long userId);
 
-    QuantityMeasurementDTO divide(QuantityDTO q1, QuantityDTO q2);
+    QuantityMeasurementDTO divide(QuantityDTO q1, QuantityDTO q2, Long userId);
 
-    // ── History queries ──────────────────────────────────────────────────────
+    // ── User-scoped history queries ──────────────────────────────────────────
 
-    List<QuantityMeasurementDTO> getHistoryByOperation(String operation);
+    List<QuantityMeasurementDTO> getHistoryByOperation(String operation, Long userId);
 
-    List<QuantityMeasurementDTO> getHistoryByMeasurementType(String measurementType);
+    List<QuantityMeasurementDTO> getHistoryByMeasurementType(String measurementType, Long userId);
 
-    long getOperationCount(String operation);
+    long getOperationCount(String operation, Long userId);
 
-    List<QuantityMeasurementDTO> getErrorHistory();
+    List<QuantityMeasurementDTO> getErrorHistory(Long userId);
 }
