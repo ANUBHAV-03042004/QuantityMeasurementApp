@@ -27,6 +27,8 @@ public class QuantityMeasurementEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private Long userId;   // null = guest (unauthenticated)
+
     private double thisValue;
     private String thisUnit;
     private String thisMeasurementType;
@@ -128,6 +130,8 @@ public class QuantityMeasurementEntity {
     }
 
     public Long    getId()                       { return id; }
+    public Long    getUserId()                   { return userId; }
+    public void    setUserId(Long userId)        { this.userId = userId; }
     public double  getThisValue()                { return thisValue; }
     public String  getThisUnit()                 { return thisUnit; }
     public String  getThisMeasurementType()      { return thisMeasurementType; }
