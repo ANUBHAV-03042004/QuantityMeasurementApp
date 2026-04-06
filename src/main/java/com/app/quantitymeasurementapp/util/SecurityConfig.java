@@ -36,8 +36,6 @@ public class SecurityConfig {
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final UserDetailsService   userDetailsService;
 
-    // Injected only when spring.security.oauth2.client.registration.google.*
-    // properties are present; null otherwise (app starts fine without them).
     @Autowired(required = false)
     private ClientRegistrationRepository clientRegistrationRepository;
 
@@ -49,39 +47,29 @@ public class SecurityConfig {
         this.userDetailsService    = userDetailsService;
     }
 
-    // ── Password encoder ──────────────────────────────────────────────────────
-
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    // ── Auth provider ─────────────────────────────────────────────────────────
+    public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
 
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-        provider.setUserDetailsService(userDetailsService);
-        provider.setPasswordEncoder(passwordEncoder());
-        return provider;
+        DaoAuthenticationProvider p = new DaoAuthenticationProvider();
+        p.setUserDetailsService(userDetailsService);
+        p.setPasswordEncoder(passwordEncoder());
+        return p;
     }
-
-    // ── Auth manager ──────────────────────────────────────────────────────────
 
     @Bean
-    public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration config) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
-
-    // ── CORS ──────────────────────────────────────────────────────────────────
-    // Allows the frontend (served from the same origin on port 8080, or from a
-    // local dev server on a different port) to call the API.
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOriginPatterns(List.of("http://localhost:*", "http://127.0.0.1:*","https://anubhav-03042004.github.io"));
+        cfg.setAllowedOriginPatterns(List.of(
+            "http://localhost:*", "http://127.0.0.1:*",
+            "https://anubhav-03042004.github.io"
+        ));
         cfg.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
         cfg.setAllowedHeaders(List.of("*"));
         cfg.setAllowCredentials(true);
@@ -90,44 +78,33 @@ public class SecurityConfig {
         return source;
     }
 
-    // ── Security filter chain ─────────────────────────────────────────────────
-
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(AbstractHttpConfigurer::disable)
-
-            // IF_REQUIRED (not STATELESS) so that the OAuth2 flow can store its
-            // state parameter in the HTTP session between the authorization
-            // redirect and the callback.  The JWT filter handles authentication
-            // for every API call independently, so sessions are never used for
-            // API auth regardless of this setting.
-            .sessionManagement(sm ->
-                sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-
-            // Allow H2 console frames
-            .headers(headers ->
-                headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
+            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+            .headers(h -> h.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
 
             .authorizeHttpRequests(auth -> auth
 
-                // ── Static frontend assets ────────────────────────────────────
+                // Static frontend assets — including new password-reset pages
                 .requestMatchers(
                     "/", "/index.html", "/login.html", "/register.html",
                     "/operations.html", "/dashboard.html", "/profile.html",
                     "/oauth2-callback.html",
-                    "/css/**", "/js/**", "/images/**", "/favicon.ico"
+                    "/forgot-password.html", "/reset-password.html",
+                    "/css/**", "/js/**", "/images/**", "/favicon.ico", "/*.png"
                 ).permitAll()
 
-                // ── Auth endpoints ────────────────────────────────────────────
+                // Auth endpoints — register, login, OAuth2, forgot/reset
                 .requestMatchers(
                     "/api/v1/auth/**",
                     "/oauth2/**",
                     "/login/oauth2/**"
                 ).permitAll()
 
-                // ── Dev / docs endpoints ──────────────────────────────────────
+                // Dev / docs
                 .requestMatchers(
                     "/h2-console/**",
                     "/swagger-ui/**", "/swagger-ui.html",
@@ -135,10 +112,7 @@ public class SecurityConfig {
                     "/actuator/**"
                 ).permitAll()
 
-                // ── Quantity operations — PUBLIC (guest + user) ───────────────
-                // Anyone may run calculations.  History is saved to the DB for
-                // every request, but the history/count read endpoints are
-                // protected so only authenticated users can fetch it.
+                // Quantity operations — public
                 .requestMatchers(
                     "/api/v1/quantities/compare",
                     "/api/v1/quantities/convert",
@@ -147,39 +121,27 @@ public class SecurityConfig {
                     "/api/v1/quantities/divide"
                 ).permitAll()
 
-                // ── Quantity history / counts — AUTHENTICATED ─────────────────
-                // Returns 401 for unauthenticated requests; the frontend shows
-                // the sign-in gate instead of the table.
+                // History / counts — authenticated
                 .requestMatchers(
                     "/api/v1/quantities/history/**",
                     "/api/v1/quantities/count/**"
                 ).authenticated()
 
-                // ── User management ───────────────────────────────────────────
                 .requestMatchers("/api/v1/users/**").authenticated()
-
                 .anyRequest().authenticated()
             )
 
-            // ── 401 entry point ───────────────────────────────────────────────
-            // Restores the plain-401 response that oauth2Login() would otherwise
-            // replace with a 302 redirect to the Google login page — wrong for
-            // a REST API client.
             .exceptionHandling(ex -> ex
-                .authenticationEntryPoint(
-                    (request, response, authException) ->
-                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"))
+                .authenticationEntryPoint((req, res, e) ->
+                    res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"))
             );
 
-        // ── OAuth2 login — conditional on credentials being configured ────────
         if (clientRegistrationRepository != null) {
             http.oauth2Login(oauth -> oauth
                     .loginPage("/oauth2/authorization/google")
-                    .successHandler(oAuth2SuccessHandler)
-            );
+                    .successHandler(oAuth2SuccessHandler));
         }
 
-        // ── JWT filter ────────────────────────────────────────────────────────
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .authenticationProvider(authenticationProvider());
 
