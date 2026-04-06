@@ -16,4 +16,5 @@ src/test/resources/application.properties
 
 # OS
 .DS_Store
-Thumbs.db
+Thumbs.dbapplication-prod.properties
+application.properties_test
