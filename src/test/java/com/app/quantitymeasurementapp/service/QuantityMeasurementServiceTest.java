@@ -55,10 +55,7 @@ class QuantityMeasurementServiceTest {
         return new QuantityDTO(value, unit, "TemperatureUnit");
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // COMPARE
-    // ─────────────────────────────────────────────────────────────────────────
-
+  
     @Nested
     @DisplayName("compare()")
     class CompareTests {
@@ -126,10 +123,6 @@ class QuantityMeasurementServiceTest {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // CONVERT
-    // ─────────────────────────────────────────────────────────────────────────
-
     @Nested
     @DisplayName("convert()")
     class ConvertTests {
@@ -185,10 +178,7 @@ class QuantityMeasurementServiceTest {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // ADD
-    // ─────────────────────────────────────────────────────────────────────────
-
+ 
     @Nested
     @DisplayName("add()")
     class AddTests {
