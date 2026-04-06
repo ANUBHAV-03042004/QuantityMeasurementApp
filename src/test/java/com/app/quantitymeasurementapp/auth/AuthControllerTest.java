@@ -16,10 +16,10 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")   // loads application-test.properties (supplies dummy OAuth2 creds)
+@ActiveProfiles("test")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @DisplayName("Auth integration tests — register + login")
-class AuthControllerTest {
+public class AuthControllerTest {   // <-- public: Eclipse runner requires it to load the class
 
     @Autowired
     private TestRestTemplate restTemplate;
@@ -27,40 +27,15 @@ class AuthControllerTest {
     private static final String REGISTER = "/api/v1/auth/register";
     private static final String LOGIN    = "/api/v1/auth/login";
 
-    // Shared across tests in this class
     private static String jwtToken;
 
-    /**
-     * Switch TestRestTemplate from the default HttpURLConnection to Apache
-     * HttpClient 5.  HttpURLConnection intercepts 401 responses that carry a
-     * WWW-Authenticate header and tries to silently re-issue the request with
-     * credentials.  When the request body has already been streamed (e.g. a
-     * POST with a JSON body) it cannot replay the stream and throws
-     * HttpRetryException — your test never sees the 401 at all.
-     * Apache HttpClient does not perform this auto-retry; every response,
-     * including 401, is returned directly to the caller.
-     */
     @BeforeEach
     void useApacheHttpClient() {
-        // Apache HttpClient 5 — two reasons over the default HttpURLConnection:
-        //
-        // 1. HttpURLConnection intercepts 401+WWW-Authenticate responses on POST
-        //    bodies that have already been streamed and throws HttpRetryException
-        //    before the response reaches the test.  Apache HC returns it normally.
-        //
-        // 2. Redirect-following is disabled (.disableRedirectHandling()).
-        //    Spring Security's oauth2Login() installs an AuthenticationEntryPoint
-        //    that issues a 302 to the OAuth2 login page for unauthenticated requests.
-        //    Even though SecurityConfig now overrides this with a 401 entry point,
-        //    disabling redirects here is a defensive guarantee: if the entry point
-        //    ever changes back, the test still sees the real first response (3xx)
-        //    rather than silently following to a page that returns 200.
         HttpClient httpClient = HttpClientBuilder.create()
                 .disableRedirectHandling()
                 .build();
-        HttpComponentsClientHttpRequestFactory factory =
-                new HttpComponentsClientHttpRequestFactory(httpClient);
-        restTemplate.getRestTemplate().setRequestFactory(factory);
+        restTemplate.getRestTemplate()
+                    .setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
     }
 
     private HttpEntity<String> json(String body) {
@@ -210,7 +185,7 @@ class AuthControllerTest {
     @Order(8)
     @DisplayName("GET /users/me: valid JWT returns user profile")
     void getProfile_withValidJwt_returnsProfile() {
-        assertThat(jwtToken).isNotNull();  // requires Order(1) to have run
+        assertThat(jwtToken).isNotNull();
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(jwtToken);
@@ -228,15 +203,15 @@ class AuthControllerTest {
     @Order(9)
     @DisplayName("GET /users/me: no token returns 401 or 403")
     void getProfile_withoutJwt_returnsUnauthorized() {
-        ResponseEntity<Map> response =
-                restTemplate.getForEntity("/api/v1/users/me", Map.class);
+        ResponseEntity<String> response =
+                restTemplate.getForEntity("/api/v1/users/me", String.class);
 
         assertThat(response.getStatusCode().value()).isIn(401, 403);
     }
 
     @Test
     @Order(10)
-    @DisplayName("GET /api/v1/quantities/compare: valid JWT allows access")
+    @DisplayName("POST /api/v1/quantities/compare: valid JWT returns 200")
     void quantityEndpoint_withValidJwt_returns200() {
         assertThat(jwtToken).isNotNull();
 
@@ -282,14 +257,13 @@ class AuthControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
-    
 
     @Test
     @Order(12)
     @DisplayName("GET /api/v1/quantities/history/operation/COMPARE: no JWT returns 401")
     void historyEndpoint_withoutJwt_returnsUnauthorized() {
-        ResponseEntity<Map> response = restTemplate.getForEntity(
-                "/api/v1/quantities/history/operation/COMPARE", Map.class);
+        ResponseEntity<String> response = restTemplate.getForEntity(
+                "/api/v1/quantities/history/operation/COMPARE", String.class);
 
         assertThat(response.getStatusCode().value()).isIn(401, 403);
     }
