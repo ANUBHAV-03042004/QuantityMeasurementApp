@@ -6,7 +6,6 @@ import com.app.quantitymeasurementapp.security.JwtAuthFilter;
 import com.app.quantitymeasurementapp.security.JwtUtil;
 import com.app.quantitymeasurementapp.security.OAuth2SuccessHandler;
 import com.app.quantitymeasurementapp.service.IQuantityMeasurementService;
-import com.app.quantitymeasurementapp.user.User;
 import com.app.quantitymeasurementapp.user.UserRepository;
 import com.app.quantitymeasurementapp.util.SecurityConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -68,19 +67,30 @@ class QuantityMeasurementControllerTest {
 
     // SecurityConfig constructor dependencies
     // @SpyBean — NOT @MockBean — is required here.
-    // @MockBean replaces JwtAuthFilter with a pure mock. Mockito mocks ALL
-    // methods including doFilter() from OncePerRequestFilter — a mocked void
-    // does nothing, chain.doFilter() never fires, DispatcherServlet is never
-    // reached → empty response body → jsonPath fails with "json can not be null".
-    // @SpyBean wraps the REAL filter: doFilterInternal() runs, finds no JWT,
-    // skips the auth block, and calls chain.doFilter() normally.
-    @SpyBean private JwtAuthFilter        jwtAuthFilter;
-    @MockBean private JwtUtil              jwtUtil;
-    @MockBean private OAuth2SuccessHandler oAuth2SuccessHandler;
-    @MockBean private UserDetailsService   userDetailsService;
 
-    private static final String BASE_URL     = "/api/v1/quantities";
-    private static final Long   MOCK_USER_ID = 1L;
+    @SpyBean
+    private JwtAuthFilter jwtAuthFilter;
+
+    @MockBean
+    private JwtUtil jwtUtil;                       // injected into the JwtAuthFilter spy
+
+    @MockBean
+    private OAuth2SuccessHandler oAuth2SuccessHandler; // SecurityConfig.filterChain() uses it
+
+    @MockBean
+    private UserDetailsService userDetailsService;  // DaoAuthenticationProvider depends on it
+
+    // ── NEW: needed by QuantityMeasurementController.resolveUserId() ──────────
+    // The controller autowires UserRepository to look up the User by email
+    // and extract their id. Without this mock the application context fails
+    // to start during the @WebMvcTest slice.
+    @MockBean
+    private UserRepository userRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    private static final String BASE_URL = "/api/v1/quantities";
 
     private static final String COMPARE_BODY = """
             {
@@ -155,14 +165,12 @@ class QuantityMeasurementControllerTest {
         return dto;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // POST /compare — PUBLIC (guests and logged-in users)
-    // ═══════════════════════════════════════════════════════════════════════
-
     @Test
     @WithMockUser
-    @DisplayName("POST /compare: authenticated user — 200")
-    void postCompare_authenticatedUser_returns200() throws Exception {
+    @DisplayName("POST /compare with valid input returns 200 and result")
+    void postCompare_validInput_returns200() throws Exception {
+        // Service now takes (QuantityDTO, QuantityDTO, Long userId)
+        // Use any() for all three — userId is resolved internally and irrelevant here
         when(service.compare(any(), any(), any())).thenReturn(compareResult());
 
         mockMvc.perform(post(BASE_URL + "/compare")
@@ -220,10 +228,19 @@ class QuantityMeasurementControllerTest {
                .andExpect(status().isBadRequest());
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // POST /add — PUBLIC
-    // ═══════════════════════════════════════════════════════════════════════
+    @Test
+    @WithAnonymousUser
+    @DisplayName("POST /compare without authentication returns 200 (public endpoint)")
+    void postCompare_noAuth_returns200() throws Exception {
+        when(service.compare(any(), any(), any())).thenReturn(compareResult());
 
+        mockMvc.perform(post(BASE_URL + "/compare")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(COMPARE_BODY))
+               .andExpect(status().isOk());
+    }
+
+   
     @Test
     @WithMockUser
     @DisplayName("POST /add: valid input — 200")
@@ -241,8 +258,8 @@ class QuantityMeasurementControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("POST /add: service throws QuantityMeasurementException — 400")
-    void postAdd_serviceThrows_returns400() throws Exception {
+    @DisplayName("POST /add when service throws exception returns 400")
+    void postAdd_serviceThrowsException_returns400() throws Exception {
         when(service.add(any(), any(), any()))
                 .thenThrow(new QuantityMeasurementException("Cannot ADD different measurement categories"));
 
@@ -254,16 +271,14 @@ class QuantityMeasurementControllerTest {
                .andExpect(jsonPath("$.message", containsString("Cannot ADD")));
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // POST /subtract — PUBLIC
-    // ═══════════════════════════════════════════════════════════════════════
-
     @Test
     @WithMockUser
     @DisplayName("POST /subtract: valid input — 200")
     void postSubtract_validInput_returns200() throws Exception {
         QuantityMeasurementDTO dto = new QuantityMeasurementDTO();
-        dto.setOperation("SUBTRACT"); dto.setResultValue(12.0); dto.setResultUnit("INCHES");
+        dto.setOperation("SUBTRACT");
+        dto.setResultValue(12.0);
+        dto.setResultUnit("INCHES");
         when(service.subtract(any(), any(), any())).thenReturn(dto);
 
         String body = """
@@ -278,10 +293,6 @@ class QuantityMeasurementControllerTest {
                .andExpect(status().isOk())
                .andExpect(jsonPath("$.resultValue", is(12.0)));
     }
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // POST /divide — PUBLIC
-    // ═══════════════════════════════════════════════════════════════════════
 
     @Test
     @WithMockUser
@@ -302,17 +313,13 @@ class QuantityMeasurementControllerTest {
                .andExpect(status().isBadRequest());
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // GET /history — PROTECTED, user-scoped (each user sees only their own)
-    // ═══════════════════════════════════════════════════════════════════════
-
+ 
     @Test
     @WithMockUser
     @DisplayName("GET /history/operation/COMPARE: authenticated user — 200 with their records")
     void getHistoryByOperation_returns200() throws Exception {
-        // Override the global lenient stub with a specific return value
-        when(service.getHistoryByOperation(anyString(), anyLong()))
-                .thenReturn(List.of(compareResult()));
+        // History methods now take (String operation, Long userId)
+        when(service.getHistoryByOperation(any(), any())).thenReturn(List.of(compareResult()));
 
         mockMvc.perform(get(BASE_URL + "/history/operation/COMPARE"))
                .andExpect(status().isOk())
@@ -332,8 +339,7 @@ class QuantityMeasurementControllerTest {
     @WithMockUser
     @DisplayName("GET /history/type/LengthUnit: authenticated user — 200 with their records")
     void getHistoryByType_returns200() throws Exception {
-        when(service.getHistoryByMeasurementType(anyString(), anyLong()))
-                .thenReturn(List.of(compareResult()));
+        when(service.getHistoryByMeasurementType(any(), any())).thenReturn(List.of(compareResult()));
 
         mockMvc.perform(get(BASE_URL + "/history/type/LengthUnit"))
                .andExpect(status().isOk())
@@ -344,7 +350,7 @@ class QuantityMeasurementControllerTest {
     @WithMockUser
     @DisplayName("GET /count/ADD: authenticated user — 200 with their count")
     void countByOperation_returns200() throws Exception {
-        when(service.getOperationCount(anyString(), anyLong())).thenReturn(5L);
+        when(service.getOperationCount(any(), any())).thenReturn(5L);
 
         mockMvc.perform(get(BASE_URL + "/count/ADD"))
                .andExpect(status().isOk())
@@ -358,7 +364,7 @@ class QuantityMeasurementControllerTest {
         QuantityMeasurementDTO errDto = new QuantityMeasurementDTO();
         errDto.setError(true);
         errDto.setErrorMessage("incompatible types");
-        when(service.getErrorHistory(anyLong())).thenReturn(List.of(errDto));
+        when(service.getErrorHistory(any())).thenReturn(List.of(errDto));
 
         mockMvc.perform(get(BASE_URL + "/history/errored"))
                .andExpect(status().isOk())

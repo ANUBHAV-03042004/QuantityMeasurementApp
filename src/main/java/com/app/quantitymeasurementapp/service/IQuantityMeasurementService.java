@@ -17,7 +17,7 @@ public interface IQuantityMeasurementService {
 
     QuantityMeasurementDTO divide(QuantityDTO q1, QuantityDTO q2, Long userId);
 
-    // ── History queries (user-scoped) ────────────────────────────────────────
+    // ── User-scoped history queries ──────────────────────────────────────────
 
     List<QuantityMeasurementDTO> getHistoryByOperation(String operation, Long userId);
 

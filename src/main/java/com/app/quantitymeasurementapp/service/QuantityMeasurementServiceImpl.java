@@ -157,6 +157,10 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
         } catch (QuantityMeasurementException e) {
             saveError(q1, q2, "DIVIDE", e.getMessage(), userId);
             throw e;
+        } catch (ArithmeticException e) {
+            String msg = "DIVIDE failed: " + e.getMessage();
+            saveError(q1, q2, "DIVIDE", msg, userId);
+            throw new QuantityMeasurementException(msg, e);
         } catch (Exception e) {
             String msg = "DIVIDE failed: " + e.getMessage();
             saveError(q1, q2, "DIVIDE", msg, userId);
@@ -185,8 +189,7 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
 
     @Override
     public List<QuantityMeasurementDTO> getErrorHistory(Long userId) {
-        return QuantityMeasurementDTO.fromEntityList(
-                repository.findByUserIdAndIsErrorTrue(userId));
+        return QuantityMeasurementDTO.fromEntityList(repository.findByUserIdAndIsErrorTrue(userId));
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────

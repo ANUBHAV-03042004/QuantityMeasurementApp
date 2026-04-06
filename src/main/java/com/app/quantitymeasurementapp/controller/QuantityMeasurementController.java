@@ -33,17 +33,18 @@ public class QuantityMeasurementController {
     @Autowired
     public QuantityMeasurementController(IQuantityMeasurementService service,
                                           UserRepository userRepository) {
-        this.service = service;
+        this.service        = service;
         this.userRepository = userRepository;
     }
 
-    // ── Resolve userId from JWT principal (null for guests) ──────────────────
-
+    // ── Helper: resolve userId from Spring Security principal ─────────────────
+    // Returns null for unauthenticated requests (operations are still allowed,
+    // but the record won't be linked to any user and won't appear in history).
     private Long resolveUserId(UserDetails principal) {
         if (principal == null) return null;
         return userRepository.findByEmail(principal.getUsername())
-                .map(User::getId)
-                .orElse(null);
+                             .map(User::getId)
+                             .orElse(null);
     }
 
     // ── POST /compare ─────────────────────────────────────────────────────────
@@ -53,9 +54,11 @@ public class QuantityMeasurementController {
     public ResponseEntity<QuantityMeasurementDTO> compare(
             @Valid @RequestBody QuantityInputDTO input,
             @AuthenticationPrincipal UserDetails principal) {
-        Long userId = resolveUserId(principal);
+        log.info("POST /compare  thisUnit={} thatUnit={}",
+                 input.getThisQuantityDTO().getUnit(), input.getThatQuantityDTO().getUnit());
         return ResponseEntity.ok(
-                service.compare(input.getThisQuantityDTO(), input.getThatQuantityDTO(), userId));
+                service.compare(input.getThisQuantityDTO(), input.getThatQuantityDTO(),
+                                resolveUserId(principal)));
     }
 
     // ── POST /convert ─────────────────────────────────────────────────────────
@@ -65,9 +68,11 @@ public class QuantityMeasurementController {
     public ResponseEntity<QuantityMeasurementDTO> convert(
             @Valid @RequestBody QuantityInputDTO input,
             @AuthenticationPrincipal UserDetails principal) {
-        Long userId = resolveUserId(principal);
+        log.info("POST /convert  from={} to={}",
+                 input.getThisQuantityDTO().getUnit(), input.getThatQuantityDTO().getUnit());
         return ResponseEntity.ok(
-                service.convert(input.getThisQuantityDTO(), input.getThatQuantityDTO(), userId));
+                service.convert(input.getThisQuantityDTO(), input.getThatQuantityDTO(),
+                                resolveUserId(principal)));
     }
 
     // ── POST /add ─────────────────────────────────────────────────────────────
@@ -77,9 +82,12 @@ public class QuantityMeasurementController {
     public ResponseEntity<QuantityMeasurementDTO> add(
             @Valid @RequestBody QuantityInputDTO input,
             @AuthenticationPrincipal UserDetails principal) {
-        Long userId = resolveUserId(principal);
+        log.info("POST /add  {} {} + {} {}",
+                 input.getThisQuantityDTO().getValue(), input.getThisQuantityDTO().getUnit(),
+                 input.getThatQuantityDTO().getValue(), input.getThatQuantityDTO().getUnit());
         return ResponseEntity.ok(
-                service.add(input.getThisQuantityDTO(), input.getThatQuantityDTO(), userId));
+                service.add(input.getThisQuantityDTO(), input.getThatQuantityDTO(),
+                            resolveUserId(principal)));
     }
 
     // ── POST /subtract ────────────────────────────────────────────────────────
@@ -89,9 +97,12 @@ public class QuantityMeasurementController {
     public ResponseEntity<QuantityMeasurementDTO> subtract(
             @Valid @RequestBody QuantityInputDTO input,
             @AuthenticationPrincipal UserDetails principal) {
-        Long userId = resolveUserId(principal);
+        log.info("POST /subtract  {} {} - {} {}",
+                 input.getThisQuantityDTO().getValue(), input.getThisQuantityDTO().getUnit(),
+                 input.getThatQuantityDTO().getValue(), input.getThatQuantityDTO().getUnit());
         return ResponseEntity.ok(
-                service.subtract(input.getThisQuantityDTO(), input.getThatQuantityDTO(), userId));
+                service.subtract(input.getThisQuantityDTO(), input.getThatQuantityDTO(),
+                                 resolveUserId(principal)));
     }
 
     // ── POST /divide ──────────────────────────────────────────────────────────
@@ -101,49 +112,47 @@ public class QuantityMeasurementController {
     public ResponseEntity<QuantityMeasurementDTO> divide(
             @Valid @RequestBody QuantityInputDTO input,
             @AuthenticationPrincipal UserDetails principal) {
-        Long userId = resolveUserId(principal);
+        log.info("POST /divide  {} {} / {} {}",
+                 input.getThisQuantityDTO().getValue(), input.getThisQuantityDTO().getUnit(),
+                 input.getThatQuantityDTO().getValue(), input.getThatQuantityDTO().getUnit());
         return ResponseEntity.ok(
-                service.divide(input.getThisQuantityDTO(), input.getThatQuantityDTO(), userId));
+                service.divide(input.getThisQuantityDTO(), input.getThatQuantityDTO(),
+                               resolveUserId(principal)));
     }
 
-    // ── GET history (user-scoped) ─────────────────────────────────────────────
+    // ── GET history (all user-scoped) ─────────────────────────────────────────
 
     @GetMapping("/history/operation/{operation}")
-    @Operation(summary = "Get your history for a specific operation")
+    @Operation(summary = "Get current user's records for a specific operation")
     public ResponseEntity<List<QuantityMeasurementDTO>> historyByOperation(
             @Parameter(description = "Operation name, e.g. COMPARE") @PathVariable String operation,
             @AuthenticationPrincipal UserDetails principal) {
-        Long userId = resolveUserId(principal);
-        if (userId == null) return ResponseEntity.status(401).build();
-        return ResponseEntity.ok(service.getHistoryByOperation(operation, userId));
+        return ResponseEntity.ok(
+                service.getHistoryByOperation(operation, resolveUserId(principal)));
     }
 
     @GetMapping("/history/type/{measurementType}")
-    @Operation(summary = "Get your history for a measurement type")
+    @Operation(summary = "Get current user's records for a measurement type")
     public ResponseEntity<List<QuantityMeasurementDTO>> historyByType(
             @Parameter(description = "Measurement type, e.g. LengthUnit") @PathVariable String measurementType,
             @AuthenticationPrincipal UserDetails principal) {
-        Long userId = resolveUserId(principal);
-        if (userId == null) return ResponseEntity.status(401).build();
-        return ResponseEntity.ok(service.getHistoryByMeasurementType(measurementType, userId));
+        return ResponseEntity.ok(
+                service.getHistoryByMeasurementType(measurementType, resolveUserId(principal)));
     }
 
     @GetMapping("/count/{operation}")
-    @Operation(summary = "Count your successful records for a given operation")
+    @Operation(summary = "Count current user's successful records for a given operation")
     public ResponseEntity<Long> countByOperation(
             @Parameter(description = "Operation name, e.g. COMPARE") @PathVariable String operation,
             @AuthenticationPrincipal UserDetails principal) {
-        Long userId = resolveUserId(principal);
-        if (userId == null) return ResponseEntity.ok(0L);
-        return ResponseEntity.ok(service.getOperationCount(operation, userId));
+        return ResponseEntity.ok(
+                service.getOperationCount(operation, resolveUserId(principal)));
     }
 
     @GetMapping("/history/errored")
-    @Operation(summary = "Get your error records")
+    @Operation(summary = "Get current user's error records")
     public ResponseEntity<List<QuantityMeasurementDTO>> errorHistory(
             @AuthenticationPrincipal UserDetails principal) {
-        Long userId = resolveUserId(principal);
-        if (userId == null) return ResponseEntity.status(401).build();
-        return ResponseEntity.ok(service.getErrorHistory(userId));
+        return ResponseEntity.ok(service.getErrorHistory(resolveUserId(principal)));
     }
 }

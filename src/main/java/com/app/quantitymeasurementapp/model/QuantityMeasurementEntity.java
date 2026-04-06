@@ -27,7 +27,8 @@ public class QuantityMeasurementEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long userId;   // null = guest (unauthenticated)
+    @jakarta.persistence.Column(name = "user_id")
+    private Long userId;
 
     private double thisValue;
     private String thisUnit;
@@ -131,7 +132,6 @@ public class QuantityMeasurementEntity {
 
     public Long    getId()                       { return id; }
     public Long    getUserId()                   { return userId; }
-    public void    setUserId(Long userId)        { this.userId = userId; }
     public double  getThisValue()                { return thisValue; }
     public String  getThisUnit()                 { return thisUnit; }
     public String  getThisMeasurementType()      { return thisMeasurementType; }
@@ -149,6 +149,7 @@ public class QuantityMeasurementEntity {
     public LocalDateTime getUpdatedAt()          { return updatedAt; }
 
     public void setId(Long id)                              { this.id = id; }
+    public void setUserId(Long userId)                      { this.userId = userId; }
     public void setThisValue(double v)                      { this.thisValue = v; }
     public void setThisUnit(String v)                       { this.thisUnit = v; }
     public void setThisMeasurementType(String v)            { this.thisMeasurementType = v; }
