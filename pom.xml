@@ -25,42 +25,30 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <springdoc.version>2.5.0</springdoc.version>
         <jjwt.version>0.12.6</jjwt.version>
-        <lombok.version>1.18.44</lombok.version>    <!-- matches your lombok.jar -->
+        <lombok.version>1.18.44</lombok.version>
     </properties>
 
     <dependencies>
-
-        <!-- ── Core Web ──────────────────────────────────────────────────── -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-
-        <!-- ── JPA / Hibernate ───────────────────────────────────────────── -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
-
-        <!-- ── Bean Validation ───────────────────────────────────────────── -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
-
-        <!-- ── Spring Security ───────────────────────────────────────────── -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
-
-        <!-- ── OAuth2 Client (Google login) ──────────────────────────────── -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-client</artifactId>
         </dependency>
-
-        <!-- ── JWT (JJWT 0.12.x) ─────────────────────────────────────────── -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
@@ -78,43 +66,38 @@
             <version>${jjwt.version}</version>
             <scope>runtime</scope>
         </dependency>
-
-        <!-- ── Actuator ──────────────────────────────────────────────────── -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
-        <!-- ── H2 (dev / test in-memory DB) ──────────────────────────────── -->
+        <!-- THE FIX: was <scope>test</scope> — H2 wasn't on runtime classpath -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>test</scope>
+            <scope>runtime</scope>
         </dependency>
 
-        <!-- ── MySQL (production) ────────────────────────────────────────── -->
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
         </dependency>
-
-        <!-- ── Lombok ────────────────────────────────────────────────────── -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>${lombok.version}</version>
             <optional>true</optional>
         </dependency>
-
-        <!-- ── Swagger / OpenAPI ─────────────────────────────────────────── -->
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>${springdoc.version}</version>
         </dependency>
-
-        <!-- ── Test ──────────────────────────────────────────────────────── -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -125,33 +108,15 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <!--
-            Apache HttpClient 5 — test scope only.
-            Replaces Java's built-in HttpURLConnection inside TestRestTemplate.
-            Without this, HttpURLConnection intercepts 401 responses that include a
-            WWW-Authenticate header and tries to silently retry with credentials.
-            In streaming mode (POST with a body) it cannot retry and throws
-            HttpRetryException before your test ever sees the response.
-            Apache HttpClient returns every response, including 401, to the caller.
-        -->
         <dependency>
             <groupId>org.apache.httpcomponents.client5</groupId>
             <artifactId>httpclient5</artifactId>
             <scope>test</scope>
         </dependency>
-
-    
-        <!-- Spring Mail — for password reset emails -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-mail</artifactId>
-        </dependency>
     </dependencies>
 
     <build>
         <plugins>
-
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
@@ -164,7 +129,6 @@
                     </excludes>
                 </configuration>
             </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -179,21 +143,10 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <!--
-                        net.bytebuddy.experimental=true — required when the JVM running
-                        Maven is newer than the Java version Mockito's bundled Byte Buddy
-                        was built for (Spring Boot 3.2.5 ships Byte Buddy 1.14.x which
-                        supports up to Java 22; running on Java 23+ triggers the error
-                        "Java N is not supported — update Byte Buddy or set
-                        net.bytebuddy.experimental as a VM property").
-                        This flag tells Byte Buddy to proceed anyway; it works correctly
-                        for all standard mocking patterns.
-                    -->
                     <argLine>-Dnet.bytebuddy.experimental=true</argLine>
                     <includes>
                         <include>**/*Test.java</include>
@@ -201,8 +154,6 @@
                     </includes>
                 </configuration>
             </plugin>
-
         </plugins>
     </build>
-
 </project>
