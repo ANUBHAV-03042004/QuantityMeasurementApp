@@ -31,7 +31,7 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
         this.repository = repository;
     }
 
-    // ── COMPARE ──────────────────────────────────────────────────────────────
+    // ── COMPARE ─────────────────────────────────────────────────────────────
 
     @Override
     public QuantityMeasurementDTO compare(QuantityDTO q1, QuantityDTO q2, Long userId) {
@@ -39,6 +39,7 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
         try {
             validateSameCategory(q1, q2, "COMPARE");
             boolean result = toQuantity(q1).equals(toQuantity(q2));
+            log.debug("COMPARE {} {} => {}", q1.getValue(), q2.getValue(), result);
             QuantityMeasurementEntity entity = new QuantityMeasurementEntity(
                     q1.getValue(), q1.getUnit(), q1.getMeasurementType(),
                     q2.getValue(), q2.getUnit(), q2.getMeasurementType(),
@@ -56,7 +57,7 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
         }
     }
 
-    // ── CONVERT ──────────────────────────────────────────────────────────────
+    // ── CONVERT ─────────────────────────────────────────────────────────────
 
     @Override
     public QuantityMeasurementDTO convert(QuantityDTO source, QuantityDTO target, Long userId) {
@@ -66,6 +67,8 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
             validateSameCategory(source, target, "CONVERT");
             double resultValue = convertValue(source.getValue(), source.getUnit(),
                                               source.getMeasurementType(), target.getUnit());
+            log.debug("CONVERT {} {} => {} {}", source.getValue(), source.getUnit(),
+                      resultValue, target.getUnit());
             QuantityMeasurementEntity entity = new QuantityMeasurementEntity(
                     source.getValue(), source.getUnit(), source.getMeasurementType(),
                     "CONVERT",
@@ -110,7 +113,7 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
         }
     }
 
-    // ── SUBTRACT ─────────────────────────────────────────────────────────────
+    // ── SUBTRACT ────────────────────────────────────────────────────────────
 
     @Override
     public QuantityMeasurementDTO subtract(QuantityDTO q1, QuantityDTO q2, Long userId) {
@@ -137,7 +140,7 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
         }
     }
 
-    // ── DIVIDE ───────────────────────────────────────────────────────────────
+    // ── DIVIDE ──────────────────────────────────────────────────────────────
 
     @Override
     public QuantityMeasurementDTO divide(QuantityDTO q1, QuantityDTO q2, Long userId) {
@@ -168,7 +171,7 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
         }
     }
 
-    // ── History (user-scoped) ─────────────────────────────────────────────────
+    // ── History ──────────────────────────────────────────────────────────────
 
     @Override
     public List<QuantityMeasurementDTO> getHistoryByOperation(String operation, Long userId) {
@@ -192,7 +195,7 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
         return QuantityMeasurementDTO.fromEntityList(repository.findByUserIdAndIsErrorTrue(userId));
     }
 
-    // ── Private helpers ───────────────────────────────────────────────────────
+    // ── Private helpers ──────────────────────────────────────────────────────
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private Quantity<?> toQuantity(QuantityDTO dto) {
@@ -207,7 +210,8 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
                 default: throw new QuantityMeasurementException("Unknown measurementType: " + type);
             }
         } catch (IllegalArgumentException e) {
-            throw new QuantityMeasurementException("Unit must be valid for the specified measurement type", e);
+            throw new QuantityMeasurementException(
+                    "Unit must be valid for the specified measurement type", e);
         }
     }
 
@@ -233,7 +237,8 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
                 default: throw new QuantityMeasurementException("Unknown type: " + type);
             }
         } catch (IllegalArgumentException e) {
-            throw new QuantityMeasurementException("Unit must be valid for the specified measurement type", e);
+            throw new QuantityMeasurementException(
+                    "Unit must be valid for the specified measurement type", e);
         }
     }
 
@@ -264,7 +269,8 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
         }
     }
 
-    private <U extends Enum<U> & IMeasurable> double applyOp(Quantity<U> a, Quantity<U> b, String op) {
+    private <U extends Enum<U> & IMeasurable> double applyOp(
+            Quantity<U> a, Quantity<U> b, String op) {
         switch (op) {
             case "ADD":      return a.add(b).getValue();
             case "SUBTRACT": return a.subtract(b).getValue();
@@ -279,10 +285,12 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
     }
 
     private void validateSameCategory(QuantityDTO q1, QuantityDTO q2, String op) {
-        if (!q1.getMeasurementType().equals(q2.getMeasurementType()))
+        String t1 = q1.getMeasurementType();
+        String t2 = q2.getMeasurementType();
+        if (!t1.equals(t2))
             throw new QuantityMeasurementException(
                     op + " Error: Cannot perform arithmetic between different measurement categories: "
-                    + q1.getMeasurementType() + " and " + q2.getMeasurementType());
+                    + t1 + " and " + t2);
     }
 
     private void validateArithmeticSupported(QuantityDTO q, String op) {
@@ -294,13 +302,14 @@ public class QuantityMeasurementServiceImpl implements IQuantityMeasurementServi
 
     private void saveError(QuantityDTO q1, QuantityDTO q2, String op, String errorMessage, Long userId) {
         try {
+            Double thatValue = q2 != null ? q2.getValue()           : null;
+            String thatUnit  = q2 != null ? q2.getUnit()            : null;
+            String thatType  = q2 != null ? q2.getMeasurementType() : null;
             QuantityMeasurementEntity err = new QuantityMeasurementEntity(
                     q1 != null ? q1.getValue()           : 0.0,
                     q1 != null ? q1.getUnit()            : "UNKNOWN",
                     q1 != null ? q1.getMeasurementType() : "UNKNOWN",
-                    q2 != null ? q2.getValue()           : null,
-                    q2 != null ? q2.getUnit()            : null,
-                    q2 != null ? q2.getMeasurementType() : null,
+                    thatValue, thatUnit, thatType,
                     op, errorMessage);
             err.setUserId(userId);
             repository.save(err);
