@@ -97,7 +97,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             if (o != null) hint = o.toString();
         }
 
-        String callbackBase = "legacy".equalsIgnoreCase(hint) ? legacyCallback : angularCallback;
+        String callbackBase = "angular".equalsIgnoreCase(hint) ?angularCallback :  legacyCallback ;
         getRedirectStrategy().sendRedirect(request, response, callbackBase + "?token=" + token);
     }
 }
