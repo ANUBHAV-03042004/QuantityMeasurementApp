@@ -13,11 +13,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Full-stack integration tests.
- * Order(1) registers a user and stores the JWT.
- * All subsequent quantity requests carry that JWT.
- */
+
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")   // loads application-test.properties (supplies dummy OAuth2 creds)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
