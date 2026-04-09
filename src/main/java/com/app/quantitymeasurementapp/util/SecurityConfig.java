@@ -1,8 +1,10 @@
 package com.app.quantitymeasurementapp.util;
 
 import com.app.quantitymeasurementapp.security.JwtAuthFilter;
+import com.app.quantitymeasurementapp.security.OAuth2FrontendHintFilter;
 import com.app.quantitymeasurementapp.security.OAuth2SuccessHandler;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -25,6 +27,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -32,23 +35,31 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    private final JwtAuthFilter        jwtAuthFilter;
-    private final OAuth2SuccessHandler oAuth2SuccessHandler;
-    private final UserDetailsService   userDetailsService;
+    private final JwtAuthFilter            jwtAuthFilter;
+    private final OAuth2SuccessHandler     oAuth2SuccessHandler;
+    private final UserDetailsService       userDetailsService;
+    private final OAuth2FrontendHintFilter frontendHintFilter;
+
+    @Value("${app.cors.allowed-origins:http://localhost:*,http://127.0.0.1:*}")
+    private String allowedOriginsRaw;
 
     @Autowired(required = false)
     private ClientRegistrationRepository clientRegistrationRepository;
 
-    public SecurityConfig(JwtAuthFilter        jwtAuthFilter,
-                          OAuth2SuccessHandler  oAuth2SuccessHandler,
-                          UserDetailsService    userDetailsService) {
-        this.jwtAuthFilter        = jwtAuthFilter;
-        this.oAuth2SuccessHandler  = oAuth2SuccessHandler;
-        this.userDetailsService    = userDetailsService;
+    public SecurityConfig(JwtAuthFilter            jwtAuthFilter,
+                          OAuth2SuccessHandler      oAuth2SuccessHandler,
+                          UserDetailsService        userDetailsService,
+                          OAuth2FrontendHintFilter  frontendHintFilter) {
+        this.jwtAuthFilter      = jwtAuthFilter;
+        this.oAuth2SuccessHandler = oAuth2SuccessHandler;
+        this.userDetailsService = userDetailsService;
+        this.frontendHintFilter = frontendHintFilter;
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
@@ -59,18 +70,17 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration cfg) throws Exception {
+        return cfg.getAuthenticationManager();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOriginPatterns(List.of(
-            "http://localhost:*", "http://127.0.0.1:*",
-            "https://anubhav-03042004.github.io"
-        ));
-        cfg.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
+        List<String> origins = Arrays.stream(allowedOriginsRaw.split(","))
+                .map(String::trim).toList();
+        cfg.setAllowedOriginPatterns(origins);
+        cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         cfg.setAllowedHeaders(List.of("*"));
         cfg.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -87,62 +97,51 @@ public class SecurityConfig {
             .headers(h -> h.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
 
             .authorizeHttpRequests(auth -> auth
-
-                // Static frontend assets — including new password-reset pages
                 .requestMatchers(
                     "/", "/index.html", "/login.html", "/register.html",
                     "/operations.html", "/dashboard.html", "/profile.html",
-                    "/oauth2-callback.html",
                     "/forgot-password.html", "/reset-password.html",
-                    "/css/**", "/js/**", "/images/**", "/favicon.ico", "/*.png"
+                    "/oauth2-callback.html",
+                    "/css/**", "/js/**", "/images/**", "/favicon.ico"
                 ).permitAll()
-
-                // Auth endpoints — register, login, OAuth2, forgot/reset
                 .requestMatchers(
-                    "/api/v1/auth/**",
-                    "/oauth2/**",
-                    "/login/oauth2/**"
+                    "/api/v1/auth/**", "/oauth2/**", "/login/oauth2/**"
                 ).permitAll()
-
-                // Dev / docs
                 .requestMatchers(
                     "/h2-console/**",
                     "/swagger-ui/**", "/swagger-ui.html",
-                    "/v3/api-docs/**",
-                    "/actuator/**"
+                    "/v3/api-docs/**", "/actuator/**"
                 ).permitAll()
-
-                // Quantity operations — public
                 .requestMatchers(
-                    "/api/v1/quantities/compare",
-                    "/api/v1/quantities/convert",
-                    "/api/v1/quantities/add",
-                    "/api/v1/quantities/subtract",
+                    "/api/v1/quantities/compare", "/api/v1/quantities/convert",
+                    "/api/v1/quantities/add",     "/api/v1/quantities/subtract",
                     "/api/v1/quantities/divide"
                 ).permitAll()
-
-                // History / counts — authenticated
                 .requestMatchers(
                     "/api/v1/quantities/history/**",
                     "/api/v1/quantities/count/**"
                 ).authenticated()
-
                 .requestMatchers("/api/v1/users/**").authenticated()
                 .anyRequest().authenticated()
             )
 
             .exceptionHandling(ex -> ex
-                .authenticationEntryPoint((req, res, e) ->
-                    res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"))
+                .authenticationEntryPoint(
+                    (request, response, e) ->
+                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"))
             );
 
         if (clientRegistrationRepository != null) {
             http.oauth2Login(oauth -> oauth
                     .loginPage("/oauth2/authorization/google")
-                    .successHandler(oAuth2SuccessHandler));
+                    .successHandler(oAuth2SuccessHandler)
+            );
         }
 
-        http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+        // Register the frontend-hint filter BEFORE the JWT filter so the session
+        // attribute is set before Spring Security starts the OAuth2 dance.
+        http.addFilterBefore(frontendHintFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .authenticationProvider(authenticationProvider());
 
         return http.build();

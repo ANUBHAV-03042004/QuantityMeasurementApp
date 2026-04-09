@@ -11,86 +11,106 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.UUID;
+import java.util.Base64;
+import java.util.Optional;
 
 @Service
 public class PasswordResetService {
 
     private static final Logger log = LoggerFactory.getLogger(PasswordResetService.class);
-    private static final int    TOKEN_EXPIRY_MINUTES = 30;
+
+    @Value("${app.password-reset.token-expiry-minutes:30}")
+    private int expiryMinutes;
+
+    @Value("${app.mail.from}")
+    private String fromAddress;
+
+    @Value("${app.mail.from-name:Quantra}")
+    private String fromName;
+
+    /**
+     * Base URL of the frontend — used to build the reset link in the email.
+     * This is overridden per-request using the Origin header so both frontends
+     * get the correct link. This value is only used as a last-resort fallback
+     * (e.g. when calling from Swagger with no Origin header).
+     */
+    @Value("${app.frontend.base-url:https://anubhav-03042004.github.io/QuantityMeasurementApp-Frontend}")
+    private String fallbackFrontendBaseUrl;
 
     private final UserRepository              userRepository;
     private final PasswordResetTokenRepository tokenRepository;
-    private final JavaMailSender              mailSender;
     private final PasswordEncoder             passwordEncoder;
-
-    @Value("${app.frontend.url:https://anubhav-03042004.github.io/QuantityMeasurementFrontend}")
-    private String frontendUrl;
-
-    @Value("${spring.mail.username}")
-    private String fromEmail;
+    private final JavaMailSender              mailSender;
 
     public PasswordResetService(UserRepository              userRepository,
                                 PasswordResetTokenRepository tokenRepository,
-                                JavaMailSender              mailSender,
-                                PasswordEncoder             passwordEncoder) {
+                                PasswordEncoder             passwordEncoder,
+                                JavaMailSender              mailSender) {
         this.userRepository  = userRepository;
         this.tokenRepository = tokenRepository;
-        this.mailSender      = mailSender;
         this.passwordEncoder = passwordEncoder;
+        this.mailSender      = mailSender;
     }
 
-    // ── Step 1: Generate token and send email ─────────────────────────────────
-
-    public void initiateReset(String email) {
-        // Always respond with success to prevent user enumeration
-        userRepository.findByEmail(email).ifPresent(user -> {
-            // Delete any existing tokens for this user
-            tokenRepository.deleteAllByUserId(user.getId());
-
-            String token = UUID.randomUUID().toString();
-            LocalDateTime expiry = LocalDateTime.now().plusMinutes(TOKEN_EXPIRY_MINUTES);
-            tokenRepository.save(new PasswordResetToken(token, user, expiry));
-
-            sendResetEmail(user, token);
-            log.info("Password reset token issued for {}", email);
-        });
-    }
-
-    private void sendResetEmail(User user, String token) {
-        String resetLink = frontendUrl + "/reset-password.html?token=" + token;
-
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromEmail);
-        message.setTo(user.getEmail());
-        message.setSubject("Quantra — Reset your password");
-        message.setText(
-            "Hi " + user.getFirstName() + ",\n\n"
-            + "You requested a password reset for your Quantra account.\n\n"
-            + "Click the link below to set a new password. "
-            + "This link expires in " + TOKEN_EXPIRY_MINUTES + " minutes.\n\n"
-            + resetLink + "\n\n"
-            + "If you didn't request this, you can safely ignore this email.\n\n"
-            + "— The Quantra Team"
-        );
-
-        try {
-            mailSender.send(message);
-        } catch (Exception e) {
-            log.error("Failed to send reset email to {}: {}", user.getEmail(), e.getMessage());
+    /**
+     * Generate a reset token and email the link.
+     * @param email       user's email
+     * @param frontendUrl base URL of the calling frontend (from Origin header),
+     *                    or null to use the configured fallback
+     */
+    @Transactional
+    public void initiatePasswordReset(String email, String frontendUrl) {
+        Optional<User> optUser = userRepository.findByEmail(email);
+        if (optUser.isEmpty()) {
+            log.info("Forgot-password requested for unknown email: {}", email);
+            return; // always return success to prevent user enumeration
         }
+
+        User user = optUser.get();
+
+        // OAuth2-only accounts have no password — skip silently
+        if (user.getAuthProvider() == User.AuthProvider.AUTH_GOOGLE
+                && (user.getPassword() == null || user.getPassword().isBlank())) {
+            log.info("Forgot-password ignored for Google-only account: {}", email);
+            return;
+        }
+
+        // Invalidate existing tokens for this user
+        tokenRepository.deleteByUserId(user.getId());
+
+        // Generate a secure random token
+        byte[] bytes = new byte[32];
+        new SecureRandom().nextBytes(bytes);
+        String rawToken = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+
+        tokenRepository.save(new PasswordResetToken(
+                rawToken, user, LocalDateTime.now().plusMinutes(expiryMinutes)));
+
+        // Build reset link — use caller's frontend base URL, fall back to configured default
+        String base = (frontendUrl != null && !frontendUrl.isBlank())
+                ? frontendUrl : fallbackFrontendBaseUrl;
+
+        // Angular uses route /reset-password; legacy HTML uses reset-password.html
+        // We append /reset-password and let each frontend handle it.
+        String resetLink = base.endsWith("/")
+                ? base + "reset-password?token=" + rawToken
+                : base + "/reset-password?token=" + rawToken;
+
+        sendResetEmail(user.getEmail(), user.getFirstName(), resetLink);
+        log.info("Password reset email sent to {}", email);
     }
 
-    // ── Step 2: Validate token and update password ────────────────────────────
+    @Transactional
+    public void resetPassword(String rawToken, String newPassword) {
+        PasswordResetToken prt = tokenRepository.findByToken(rawToken)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid or expired reset token"));
 
-    public void resetPassword(String token, String newPassword) {
-        PasswordResetToken prt = tokenRepository.findByToken(token)
-            .orElseThrow(() -> new IllegalArgumentException("Invalid or expired reset link."));
-
-        if (prt.isUsed())    throw new IllegalArgumentException("This reset link has already been used.");
-        if (prt.isExpired()) throw new IllegalArgumentException("This reset link has expired. Please request a new one.");
+        if (prt.isUsed())    throw new IllegalArgumentException("Reset token has already been used");
+        if (prt.isExpired()) throw new IllegalArgumentException("Reset token has expired — request a new one");
 
         User user = prt.getUser();
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -101,11 +121,20 @@ public class PasswordResetService {
         log.info("Password reset successfully for {}", user.getEmail());
     }
 
-    // ── Validate token only (for frontend to check before showing form) ───────
-
-    public boolean isTokenValid(String token) {
-        return tokenRepository.findByToken(token)
-            .map(t -> !t.isUsed() && !t.isExpired())
-            .orElse(false);
+    private void sendResetEmail(String toEmail, String firstName, String resetLink) {
+        SimpleMailMessage msg = new SimpleMailMessage();
+        // Gmail SMTP requires plain address in From — "Name <email>" format causes MailSendException
+        msg.setFrom(fromAddress);
+        msg.setTo(toEmail);
+        msg.setSubject("🐲 Quantra — Reset Your Password");
+        msg.setText(
+            "Hello " + firstName + ",\n\n"
+            + "A password reset was requested for your Quantra account.\n\n"
+            + "Click the link below to reset your password (valid for " + expiryMinutes + " minutes):\n\n"
+            + resetLink + "\n\n"
+            + "If you did not request this, you can safely ignore this email.\n\n"
+            + "— The Quantra Dragon Kingdom 🐲"
+        );
+        mailSender.send(msg);
     }
 }

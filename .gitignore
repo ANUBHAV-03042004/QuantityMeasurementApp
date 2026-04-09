@@ -12,7 +12,7 @@ logs/
 
 # Secrets — NEVER commit these
 src/main/resources/application-prod.properties
-src/test/resources/application.properties
+src/test/resources/application-test.properties
 
 # OS
 .DS_Store
