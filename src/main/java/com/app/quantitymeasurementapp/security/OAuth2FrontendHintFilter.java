@@ -9,28 +9,27 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-/**
- * Saves the ?frontend= query param into the HTTP session BEFORE Spring Security
- * redirects the browser to Google. OAuth2SuccessHandler reads it on the way back
- * to decide which frontend callback URL to redirect the JWT to.
- *
- * Old HTML frontend  → /oauth2/authorization/google?frontend=legacy
- * New Angular Azure  → /oauth2/authorization/google?frontend=angular
- */
 @Component
 public class OAuth2FrontendHintFilter extends OncePerRequestFilter {
 
     @Override
-    protected void doFilterInternal(HttpServletRequest  request,
+    protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
-                                    FilterChain         chain)
+                                    FilterChain chain)
             throws ServletException, IOException {
 
         if (request.getRequestURI().startsWith("/oauth2/authorization/")) {
             String hint = request.getParameter("frontend");
             if (hint != null && !hint.isBlank()) {
+                // Store in BOTH session and cookie so CloudFront doesn't lose it
                 request.getSession(true)
                        .setAttribute(OAuth2SuccessHandler.SESSION_ATTR_FRONTEND, hint);
+                // Also store in cookie as fallback
+                jakarta.servlet.http.Cookie cookie = new jakarta.servlet.http.Cookie("oauth2_frontend", hint);
+                cookie.setPath("/");
+                cookie.setMaxAge(300); // 5 minutes
+                cookie.setSecure(true);
+                response.addCookie(cookie);
             }
         }
         chain.doFilter(request, response);
