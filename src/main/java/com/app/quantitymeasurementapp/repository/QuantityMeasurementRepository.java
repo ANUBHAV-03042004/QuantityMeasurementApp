@@ -1,9 +1,10 @@
 package com.app.quantitymeasurementapp.repository;
 
-import com.app.quantitymeasurementapp.model.QuantityMeasurementEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+
+import com.app.quantitymeasurementapp.model.QuantityMeasurementEntity;
 
 import java.util.List;
 
@@ -35,8 +36,8 @@ public interface QuantityMeasurementRepository
     long countAllMeasurements();
 
     // ── User-scoped queries ──────────────────────────────────────────────────
-    List<QuantityMeasurementEntity> findByUserIdAndOperation(Long userId, String operation);
-    List<QuantityMeasurementEntity> findByUserIdAndThisMeasurementType(Long userId, String measurementType);
-    List<QuantityMeasurementEntity> findByUserIdAndIsErrorTrue(Long userId);
-    long countByUserIdAndOperationAndIsErrorFalse(Long userId, String operation);
+//    List<QuantityMeasurementEntity> findByUserIdAndOperation(Long userId, String operation);
+//    List<QuantityMeasurementEntity> findByUserIdAndThisMeasurementType(Long userId, String measurementType);
+//    List<QuantityMeasurementEntity> findByUserIdAndIsErrorTrue(Long userId);
+//    long countByUserIdAndOperationAndIsErrorFalse(Long userId, String operation);
 }
