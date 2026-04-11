@@ -2,15 +2,17 @@ package com.app.quantitymeasurementapp.auth;
 
 import com.app.quantitymeasurementapp.exception.UserAlreadyExistsException;
 import com.app.quantitymeasurementapp.security.JwtUtil;
+import com.app.quantitymeasurementapp.security.OAuth2SuccessHandler;
 import com.app.quantitymeasurementapp.service.PasswordResetService;
 import com.app.quantitymeasurementapp.user.User;
 import com.app.quantitymeasurementapp.user.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.Cookie;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -31,6 +33,18 @@ public class AuthController {
     private final PasswordEncoder       passwordEncoder;
     private final JwtUtil               jwtUtil;
     private final PasswordResetService  passwordResetService;
+
+    /**
+     * Public HTTPS base URL of this backend as the browser sees it (via CloudFront).
+     * Used for absolute redirects — relative sendRedirect() resolves to http:// behind CF.
+     *
+     * Set in application-prod.properties:
+     *   app.backend.base-url=https://dpvh78pj77mvc.cloudfront.net
+     * Or as AWS Elastic Beanstalk env var:
+     *   APP_BACKEND_BASE_URL=https://dpvh78pj77mvc.cloudfront.net
+     */
+    @Value("${app.backend.base-url:https://dpvh78pj77mvc.cloudfront.net}")
+    private String backendBaseUrl;
 
     public AuthController(AuthenticationManager authManager,
                           UserRepository        userRepository,
@@ -97,16 +111,17 @@ public class AuthController {
     // ── OAuth2 start — stores frontend hint THEN redirects to Google ──────────
     //
     // Why this exists:
-    //   CloudFront strips unknown query params by default, so
-    //   /oauth2/authorization/google?frontend=angular never reaches the backend
-    //   as-is.  Also, OAuth2FrontendHintFilter is registered after Spring's own
-    //   OAuth2AuthorizationRequestRedirectFilter, so the hint was saved too late.
+    //   1. CloudFront strips unknown query params by default, so
+    //      /oauth2/authorization/google?frontend=angular never reaches the backend.
+    //   2. OAuth2FrontendHintFilter runs AFTER Spring's OAuth2AuthorizationRequest-
+    //      RedirectFilter, so the hint was saved too late.
     //
-    // Fix: Angular calls GET /api/v1/auth/oauth2-start?frontend=angular
-    //   → This endpoint saves "angular" in both session + cookie on the SAME
-    //     request (no race condition) and then server-side redirects to
-    //     /oauth2/authorization/google (no ?frontend param needed anymore).
-    //   → OAuth2SuccessHandler reads session/cookie on the way back as before.
+    // Fix:
+    //   Angular calls GET /api/v1/auth/oauth2-start?frontend=angular
+    //   -> Saves "angular" in session + SameSite=None cookie on this very request
+    //   -> Then issues an ABSOLUTE redirect to CloudFront/oauth2/authorization/google
+    //      (relative sendRedirect resolves to http:// behind CF -> 400)
+    //   -> OAuth2SuccessHandler reads session/cookie on callback as before.
 
     @GetMapping("/api/v1/auth/oauth2-start")
     @Operation(summary = "Store frontend hint in session/cookie, then redirect to Google OAuth2")
@@ -115,22 +130,23 @@ public class AuthController {
             HttpServletRequest  request,
             HttpServletResponse response) throws java.io.IOException {
 
-        // 1. Session — works on single-instance / sticky-session setups
+        // 1. Session
         request.getSession(true)
-               .setAttribute(com.app.quantitymeasurementapp.security.OAuth2SuccessHandler.SESSION_ATTR_FRONTEND, frontend);
+               .setAttribute(OAuth2SuccessHandler.SESSION_ATTR_FRONTEND, frontend);
 
-        // 2. Cookie — SameSite=None; Secure so it survives the Google round-trip
+        // 2. Cookie — SameSite=None; Secure survives the Google OAuth2 round-trip
         Cookie c = new Cookie("oauth2_frontend", frontend);
         c.setPath("/");
-        c.setMaxAge(300); // 5 minutes
+        c.setMaxAge(300);
         c.setSecure(true);
         c.setHttpOnly(false);
         response.addCookie(c);
         response.addHeader("Set-Cookie",
             "oauth2_frontend=" + frontend + "; Path=/; Max-Age=300; Secure; SameSite=None");
 
-        // 3. Redirect to Spring Security's OAuth2 endpoint (no ?frontend needed)
-        response.sendRedirect("/oauth2/authorization/google");
+        // 3. ABSOLUTE redirect — relative URLs break behind CloudFront because
+        //    Tomcat resolves them to http:// which CF rejects -> 400
+        response.sendRedirect(backendBaseUrl + "/oauth2/authorization/google");
     }
 
     // ── Forgot password ───────────────────────────────────────────────────────
@@ -149,10 +165,6 @@ public class AuthController {
 
     // ── Reset password ────────────────────────────────────────────────────────
 
-    /**
-     * POST /api/v1/auth/reset-password
-     * Body: { "token": "...", "newPassword": "NewSecret123!" }
-     */
     @PostMapping("/api/v1/auth/reset-password")
     @Operation(summary = "Reset password using the token from the reset email")
     public ResponseEntity<Map<String, String>> resetPassword(
@@ -167,7 +179,6 @@ public class AuthController {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /** Derives the frontend base URL from the Origin header (preferred) or Referer. */
     private String resolveFrontendBaseUrl(HttpServletRequest req) {
         String origin = req.getHeader("Origin");
         if (origin != null && !origin.isBlank()) return origin;
@@ -180,7 +191,6 @@ public class AuthController {
                         + (uri.getPort() != -1 ? ":" + uri.getPort() : "");
             } catch (Exception ignored) {}
         }
-        return null; // PasswordResetService uses configured fallback
+        return null;
     }
-
 }
