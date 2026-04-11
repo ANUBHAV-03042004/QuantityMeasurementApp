@@ -8,6 +8,8 @@ import com.app.quantitymeasurementapp.user.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Cookie;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -90,6 +92,45 @@ public class AuthController {
                 .token(token).tokenType("Bearer")
                 .email(jwtUtil.extractEmail(token)).role(jwtUtil.extractRole(token))
                 .expiresInSeconds(jwtUtil.getExpirationSeconds()).build());
+    }
+
+    // ── OAuth2 start — stores frontend hint THEN redirects to Google ──────────
+    //
+    // Why this exists:
+    //   CloudFront strips unknown query params by default, so
+    //   /oauth2/authorization/google?frontend=angular never reaches the backend
+    //   as-is.  Also, OAuth2FrontendHintFilter is registered after Spring's own
+    //   OAuth2AuthorizationRequestRedirectFilter, so the hint was saved too late.
+    //
+    // Fix: Angular calls GET /api/v1/auth/oauth2-start?frontend=angular
+    //   → This endpoint saves "angular" in both session + cookie on the SAME
+    //     request (no race condition) and then server-side redirects to
+    //     /oauth2/authorization/google (no ?frontend param needed anymore).
+    //   → OAuth2SuccessHandler reads session/cookie on the way back as before.
+
+    @GetMapping("/api/v1/auth/oauth2-start")
+    @Operation(summary = "Store frontend hint in session/cookie, then redirect to Google OAuth2")
+    public void oauth2Start(
+            @RequestParam(defaultValue = "legacy") String frontend,
+            HttpServletRequest  request,
+            HttpServletResponse response) throws java.io.IOException {
+
+        // 1. Session — works on single-instance / sticky-session setups
+        request.getSession(true)
+               .setAttribute(com.app.quantitymeasurementapp.security.OAuth2SuccessHandler.SESSION_ATTR_FRONTEND, frontend);
+
+        // 2. Cookie — SameSite=None; Secure so it survives the Google round-trip
+        Cookie c = new Cookie("oauth2_frontend", frontend);
+        c.setPath("/");
+        c.setMaxAge(300); // 5 minutes
+        c.setSecure(true);
+        c.setHttpOnly(false);
+        response.addCookie(c);
+        response.addHeader("Set-Cookie",
+            "oauth2_frontend=" + frontend + "; Path=/; Max-Age=300; Secure; SameSite=None");
+
+        // 3. Redirect to Spring Security's OAuth2 endpoint (no ?frontend needed)
+        response.sendRedirect("/oauth2/authorization/google");
     }
 
     // ── Forgot password ───────────────────────────────────────────────────────
