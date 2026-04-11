@@ -105,7 +105,8 @@ public class SecurityConfig {
                     "/css/**", "/js/**", "/images/**", "/favicon.ico"
                 ).permitAll()
                 .requestMatchers(
-                    "/api/v1/auth/**", "/oauth2/**", "/login/oauth2/**"
+                    "/api/v1/auth/**", "/oauth2/**", "/login/oauth2/**",
+                    "/api/v1/auth/oauth2-start"
                 ).permitAll()
                 .requestMatchers(
                     "/h2-console/**",
