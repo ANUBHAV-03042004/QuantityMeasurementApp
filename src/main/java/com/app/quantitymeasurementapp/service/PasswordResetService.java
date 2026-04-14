@@ -135,6 +135,15 @@ public class PasswordResetService {
             + "If you did not request this, you can safely ignore this email.\n\n"
             + "— The Quantra Dragon Kingdom 🐲"
         );
-        mailSender.send(msg);
+        // FIX: Catch MailException so a misconfigured SMTP server is logged clearly
+        // instead of propagating as an opaque 500 to the client.
+        try {
+            mailSender.send(msg);
+        } catch (org.springframework.mail.MailException ex) {
+            log.error("Failed to send password-reset email to {}: {}", toEmail, ex.getMessage(), ex);
+            throw new RuntimeException(
+                "Could not send reset email — check SMTP credentials (spring.mail.username / spring.mail.password) " +
+                "and ensure you are using a Gmail App Password, not your regular Gmail password.", ex);
+        }
     }
 }
