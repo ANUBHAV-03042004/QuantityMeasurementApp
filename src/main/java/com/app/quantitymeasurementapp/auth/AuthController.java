@@ -43,8 +43,11 @@ public class AuthController {
      * Or as AWS Elastic Beanstalk env var:
      *   APP_BACKEND_BASE_URL=https://dpvh78pj77mvc.cloudfront.net
      */
-    @Value("${app.backend.base-url:https://dpvh78pj77mvc.cloudfront.net}") 
+    @Value("${app.backend.base-url:https://dpvh78pj77mvc.cloudfront.net}")
     private String backendBaseUrl;
+
+    @Value("${app.frontend.base-url:https://anubhav-03042004.github.io/QuantityMeasurementApp-Frontend}")
+    private String frontendBaseUrl;
 
     public AuthController(AuthenticationManager authManager,
                           UserRepository        userRepository,
@@ -157,10 +160,8 @@ public class AuthController {
             @Valid @RequestBody ForgotPasswordRequest req,
             HttpServletRequest httpRequest) {
 
-        // Always use the configured FRONTEND_BASE_URL property rather than the
-        // request Origin header, which resolves to the CDN/backend domain when
-        // requests are proxied through CloudFront.
-        passwordResetService.initiatePasswordReset(req.getEmail(), null);
+        String frontendUrl = resolveFrontendBaseUrl(httpRequest);
+        passwordResetService.initiatePasswordReset(req.getEmail(), frontendUrl);
         return ResponseEntity.ok(Map.of(
                 "message", "If that email is registered, a reset link has been sent."));
     }
@@ -191,17 +192,24 @@ public class AuthController {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private String resolveFrontendBaseUrl(HttpServletRequest req) {
-        String origin = req.getHeader("Origin");
-        if (origin != null && !origin.isBlank()) return origin;
-
-        String referer = req.getHeader("Referer");
-        if (referer != null && !referer.isBlank()) {
-            try {
-                java.net.URI uri = new java.net.URI(referer);
-                return uri.getScheme() + "://" + uri.getHost()
-                        + (uri.getPort() != -1 ? ":" + uri.getPort() : "");
-            } catch (Exception ignored) {}
+        String xOrigin = req.getHeader("X-Frontend-Origin");
+        if (xOrigin != null && !xOrigin.isBlank()) {
+            // Vercel preview/production deployments — all *.vercel.app URLs
+            if (xOrigin.contains("vercel.app")) {
+                // The Vercel app uses /reset-password route (no .html)
+                return xOrigin;
+            }
+            // GitHub Pages — origin is just https://anubhav-03042004.github.io
+            // but the app lives under the repo sub-path
+            if (xOrigin.contains("github.io")) {
+                return "https://anubhav-03042004.github.io/QuantityMeasurementApp-Frontend";
+            }
+            // localhost dev
+            if (xOrigin.contains("localhost") || xOrigin.contains("127.0.0.1")) {
+                return xOrigin;
+            }
         }
-        return null;
+        // Fallback: use the configured env var (covers Swagger/Postman calls)
+        return frontendBaseUrl;
     }
 }
