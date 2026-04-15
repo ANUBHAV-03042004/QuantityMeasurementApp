@@ -32,12 +32,6 @@ public class PasswordResetService {
     @Value("${app.mail.from-name:Quantra}")
     private String fromName;
 
-    /**
-     * Base URL of the frontend — used to build the reset link in the email.
-     * This is overridden per-request using the Origin header so both frontends
-     * get the correct link. This value is only used as a last-resort fallback
-     * (e.g. when calling from Swagger with no Origin header).
-     */
     @Value("${app.frontend.base-url:https://anubhav-03042004.github.io/QuantityMeasurementApp-Frontend}")
     private String fallbackFrontendBaseUrl;
 
@@ -54,6 +48,17 @@ public class PasswordResetService {
         this.tokenRepository = tokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.mailSender      = mailSender;
+    }
+
+    /**
+     * Returns true if the token exists, has not been used, and has not expired.
+     * Used by the frontend to decide whether to show the reset form or the
+     * "link expired" error state before the user even types a new password.
+     */
+    public boolean isTokenValid(String rawToken) {
+        return tokenRepository.findByToken(rawToken)
+                .map(prt -> !prt.isUsed() && !prt.isExpired())
+                .orElse(false);
     }
 
     /**
@@ -94,11 +99,10 @@ public class PasswordResetService {
         String base = (frontendUrl != null && !frontendUrl.isBlank())
                 ? frontendUrl : fallbackFrontendBaseUrl;
 
-        // Angular uses route /reset-password; legacy HTML uses reset-password.html
-        // We append /reset-password and let each frontend handle it.
+        // Static HTML frontend — link must point to reset-password.html
         String resetLink = base.endsWith("/")
-                ? base + "reset-password?token=" + rawToken
-                : base + "/reset-password?token=" + rawToken;
+                ? base + "reset-password.html?token=" + rawToken
+                : base + "/reset-password.html?token=" + rawToken;
 
         sendResetEmail(user.getEmail(), user.getFirstName(), resetLink);
         log.info("Password reset email sent to {}", email);
