@@ -43,7 +43,7 @@ public class AuthController {
      * Or as AWS Elastic Beanstalk env var:
      *   APP_BACKEND_BASE_URL=https://dpvh78pj77mvc.cloudfront.net
      */
-    @Value("${app.backend.base-url:https://dpvh78pj77mvc.cloudfront.net}")
+    @Value("${app.backend.base-url:https://dpvh78pj77mvc.cloudfront.net}") 
     private String backendBaseUrl;
 
     public AuthController(AuthenticationManager authManager,
@@ -157,10 +157,21 @@ public class AuthController {
             @Valid @RequestBody ForgotPasswordRequest req,
             HttpServletRequest httpRequest) {
 
-        String frontendUrl = resolveFrontendBaseUrl(httpRequest);
-        passwordResetService.initiatePasswordReset(req.getEmail(), frontendUrl);
+        // Always use the configured FRONTEND_BASE_URL property rather than the
+        // request Origin header, which resolves to the CDN/backend domain when
+        // requests are proxied through CloudFront.
+        passwordResetService.initiatePasswordReset(req.getEmail(), null);
         return ResponseEntity.ok(Map.of(
                 "message", "If that email is registered, a reset link has been sent."));
+    }
+
+    // ── Validate reset token (called by frontend before showing the form) ─────
+
+    @GetMapping("/api/v1/auth/reset-password/validate")
+    @Operation(summary = "Check whether a password-reset token is still valid")
+    public ResponseEntity<Map<String, Object>> validateResetToken(@RequestParam String token) {
+        boolean valid = passwordResetService.isTokenValid(token);
+        return ResponseEntity.ok(Map.of("valid", valid));
     }
 
     // ── Reset password ────────────────────────────────────────────────────────

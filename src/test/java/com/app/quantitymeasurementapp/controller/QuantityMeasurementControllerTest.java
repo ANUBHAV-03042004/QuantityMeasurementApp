@@ -6,6 +6,7 @@ import com.app.quantitymeasurementapp.security.JwtAuthFilter;
 import com.app.quantitymeasurementapp.security.JwtUtil;
 import com.app.quantitymeasurementapp.security.OAuth2SuccessHandler;
 import com.app.quantitymeasurementapp.service.IQuantityMeasurementService;
+import com.app.quantitymeasurementapp.user.User;
 import com.app.quantitymeasurementapp.user.UserRepository;
 import com.app.quantitymeasurementapp.util.SecurityConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -80,17 +81,13 @@ class QuantityMeasurementControllerTest {
     @MockBean
     private UserDetailsService userDetailsService;  // DaoAuthenticationProvider depends on it
 
-    // ── NEW: needed by QuantityMeasurementController.resolveUserId() ──────────
-    // The controller autowires UserRepository to look up the User by email
-    // and extract their id. Without this mock the application context fails
-    // to start during the @WebMvcTest slice.
-    @MockBean
-    private UserRepository userRepository;
-
-    @Autowired
-    private ObjectMapper objectMapper;
+    // FIX: removed duplicate @MockBean UserRepository and @Autowired ObjectMapper declarations
+    // that caused "variable already defined" compilation errors (errors 1 & 2)
 
     private static final String BASE_URL = "/api/v1/quantities";
+
+    // FIX: added missing MOCK_USER_ID constant (was referenced in @BeforeEach but never declared)
+    private static final Long MOCK_USER_ID = 42L;
 
     private static final String COMPARE_BODY = """
             {
@@ -119,6 +116,7 @@ class QuantityMeasurementControllerTest {
          * lenient() suppresses "unnecessary stubbing" warnings for tests that
          * don't hit history endpoints (operations, guest tests).
          */
+        // FIX: User class is now imported; MOCK_USER_ID constant is now declared above
         User mockUser = User.builder()
                 .firstName("Test").lastName("User")
                 .email("user")                          // matches @WithMockUser default
